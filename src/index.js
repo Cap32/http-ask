@@ -64,7 +64,7 @@ export default class Ask {
 	constructor(input = '', init = {}) {
 		const req = input instanceof Ask ? input._req : {};
 		const url = req.url || input || init.url;
-		const method = req.method || init.method || 'get';
+		const method = req.method || init.method || 'GET';
 		const query = req.query || init.query || {};
 		const headers = req.headers || init.headers || {};
 		const cancellation = req.cancellation || init.cancellation;
@@ -90,29 +90,29 @@ export default class Ask {
 		return this;
 	}
 
-	method(method = 'get') {
+	method(method = 'GET') {
 		this._req.method = method;
 		return this;
 	}
 
 	get(url) {
-		return this.method('get').url(url);
+		return this.method('GET').url(url);
 	}
 
 	post(url) {
-		return this.method('post').url(url);
+		return this.method('POST').url(url);
 	}
 
 	put(url) {
-		return this.method('put').url(url);
+		return this.method('PUT').url(url);
 	}
 
 	patch(url) {
-		return this.method('patch').url(url);
+		return this.method('PATCH').url(url);
 	}
 
 	delete(url) {
-		return this.method('delete').url(url);
+		return this.method('DELETE').url(url);
 	}
 
 	url(path = '') {
@@ -173,7 +173,7 @@ export default class Ask {
 	_request() {
 		const { _req } = this;
 		const {
-			query, headers, method, other, url = '',
+			query, headers, method = 'GET', other, url = '',
 		} = _req;
 		let { body } = _req;
 
@@ -193,7 +193,7 @@ export default class Ask {
 		}
 
 		const options = assign({}, other, {
-			method,
+			method: method.toUpperCase(),
 			headers,
 			body,
 		});
