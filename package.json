@@ -17,11 +17,6 @@
   },
   "main": "lib/index.js",
   "browser": "dist/http-ask.cjs.js",
-  "files": [
-    "dist",
-    "lib",
-    "*.md"
-  ],
   "author": "cap32",
   "license": "MIT",
   "dependencies": {
