@@ -25,7 +25,8 @@
   "author": "cap32",
   "license": "MIT",
   "dependencies": {
-    "isomorphic-fetch": "^2.2.1"
+    "isomorphic-fetch": "^2.2.1",
+    "object-assign": "^4.1.0"
   },
   "devDependencies": {
     "babel-cli": "^6.16.0",

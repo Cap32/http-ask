@@ -1,5 +1,6 @@
 
 import 'isomorphic-fetch';
+import assign from 'object-assign';
 
 const DEFAULT_TIMEOUT = 30000;
 
@@ -8,7 +9,6 @@ const ContentTypes = {
 	JSON: 'application/json',
 };
 
-const { assign } = Object;
 const isString = (target) => typeof target === 'string';
 
 const serialize = (json) => Object
