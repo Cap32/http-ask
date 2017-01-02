@@ -101,9 +101,10 @@ export default (host) => {
 	);
 
 	it('clone()', () => {
-		const origin = Ask.create().url(host).parser((data) => Object.assign(data, {
-			parsed: true,
-		}));
+		const origin = Ask.create().url(host).parser((data) => {
+			data.parsed = true;
+			return data;
+		});
 		const clone = origin.clone();
 
 		assert(clone instanceof Ask);
