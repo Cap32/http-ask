@@ -1,5 +1,7 @@
 A flexible promise based HTTP client for Node.js and browser.
 
+[![Build Status](https://travis-ci.org/Cap32/http-ask.svg?branch=master)](https://travis-ci.org/Cap32/http-ask)
+
 ## Features
 
 - Cloneable and combinable request config
