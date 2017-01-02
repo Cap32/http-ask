@@ -1,6 +1,6 @@
 {
   "name": "http-ask",
-  "version": "0.0.0-alpha.3",
+  "version": "0.0.0-rc1",
   "description": "A flexible promise based HTTP client for Node.js and browser.",
   "scripts": {
     "prebuild": "rimraf ./dist && mkdirp ./dist && rimraf ./lib && mkdirp ./lib",
