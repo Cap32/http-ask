@@ -1,6 +1,7 @@
 
 import 'isomorphic-fetch';
 import assign from 'object-assign';
+import urlJoin from 'url-join';
 
 const DEFAULT_TIMEOUT = 30000;
 
@@ -19,12 +20,46 @@ const serialize = (json) => Object
 
 const withQuery = (url, query) => {
 	const queryString = serialize(query);
-	const partials = url.split('?');
-	const pathname = partials[0];
-	const queryStringAlt = partials[1];
+	const joinedUrl = urlJoin(...url);
+	const partials = joinedUrl.split('?');
+	const pathname = partials.shift();
+	const queryStringAlt = partials.join('?');
 	const queryStringArr = [queryString, queryStringAlt];
 	const finalQueryString = queryStringArr.filter(Boolean).join('&');
 	return [pathname, finalQueryString].filter(Boolean).join('?');
+};
+
+const serializeBody = (body, headers) => {
+	const contentType = headers['Content-Type'];
+
+	if (body && !isString(body)) {
+		if (contentType === ContentTypes.JSON) {
+			return JSON.stringify(body);
+		}
+		else if (contentType === ContentTypes.FORM) {
+			return serialize(body);
+		}
+	}
+
+	return body;
+};
+
+const parseResp = (parsers = []) => (resp) => {
+	const { length } = parsers;
+	let i = 0;
+	return new Promise((resolve) => {
+		const next = (resp) => {
+			if (i < length) {
+				const parser = parsers[i];
+				i++;
+				Promise.resolve(parser(resp)).then(next);
+			}
+			else {
+				resolve(resp);
+			}
+		};
+		next(resp);
+	});
 };
 
 export class Cancellation {
@@ -47,46 +82,61 @@ export class Cancellation {
 }
 
 export default class Ask {
-	static create(...args) {
-		return new Ask(...args);
+	static create(input, opts) {
+		return new Ask(input, opts);
 	}
 
 	static clone(ask) {
-		return new Ask(ask);
+		return ask.clone();
 	}
 
-	static request(...args) {
-		return new Ask(...args).exec();
+	static request(input, opts) {
+		return new Ask(input, opts).exec();
 	}
 
 	static Cancellation = Cancellation;
 
-	constructor(input = '', init = {}) {
-		const req = input instanceof Ask ? input._req : {};
-		const url = req.url || input || init.url;
-		const method = req.method || init.method || 'GET';
-		const query = req.query || init.query || {};
-		const headers = req.headers || init.headers || {};
-		const cancellation = req.cancellation || init.cancellation;
-		const other = req.other || input || {};
-
+	constructor(input, opts = {}) {
 		this._req = {
-			method,
-			query,
-			headers,
-			url,
-			cancellation,
-			other,
+			url: [],
+			parser: [],
+			query: {},
+			headers: {},
+			method: 'GET',
 		};
+
+		this.options(input, opts);
 		this.response = null;
 	}
 
-	clone() {
-		return new Ask(this);
+	clone(input, opts) {
+		const { _req } = this;
+		const url = [].concat(_req.url);
+		const parser = [].concat(_req.parser);
+		const query = assign({}, _req.query);
+		const headers = assign({}, _req.headers);
+		const req = assign({}, _req, { url, parser, query, headers });
+		return new Ask(req).options(input, opts);
 	}
 
-	options(other = {}) {
-		assign(this._req.other, other);
+	fork(input, opts) {
+		return this.clone(input, opts).exec();
+	}
+
+	options(input = '', opts = {}) {
+		if (!isString(input)) {
+			assign(opts, input);
+			input = opts.url;
+		}
+
+		const { query, headers, url = input, ...other } = opts;
+
+		this._req = assign(this._req || {}, other);
+
+		url && this.url(url);
+		query && this.query(query);
+		headers && this.headers(headers);
+
 		return this;
 	}
 
@@ -115,11 +165,13 @@ export default class Ask {
 		return this.method('DELETE').url(url);
 	}
 
-	url(path = '') {
-		const { url } = this._req;
-		this._req.url = /^(\/|https?\:\/\/)/.test(path) ?
-			path : [url, path].filter(Boolean).join('/')
-		;
+	url(url) {
+		this._req.url.push(...[].concat(url));
+		return this;
+	}
+
+	parser(parser) {
+		this._req.parser.push(...[].concat(parser));
 		return this;
 	}
 
@@ -138,18 +190,23 @@ export default class Ask {
 		return this;
 	}
 
+	headers(set = {}) {
+		assign(this._req.headers, set);
+		return this;
+	}
+
 	cancellation(cancellation) {
 		this._req.cancellation = cancellation;
 		return this;
 	}
 
 	timeout(ms = DEFAULT_TIMEOUT) {
-		this._req.other.timeout = +ms;
+		this._req.timeout = +ms;
 		return this;
 	}
 
 	_timeout() {
-		const { timeout = DEFAULT_TIMEOUT } = this._req.other;
+		const { timeout = DEFAULT_TIMEOUT } = this._req;
 		return new Promise((resolve, reject) => setTimeout(() => {
 			const resp = this.response = new Response(null, {
 				statusText: 'Request Timeout',
@@ -170,63 +227,55 @@ export default class Ask {
 		;
 	}
 
-	_request() {
-		const { _req } = this;
-		const {
-			query, headers, method = 'GET', other, url = '',
-		} = _req;
-		let { body } = _req;
-
-		if (!headers['Content-Type']) {
-			headers['Content-Type'] = ContentTypes.JSON;
-		}
-
-		const contentType = headers['Content-Type'];
-
-		if (body && !isString(body)) {
-			if (contentType === ContentTypes.JSON) {
-				body = JSON.stringify(body);
-			}
-			else if (contentType === ContentTypes.FORM) {
-				body = serialize(body);
-			}
-		}
-
-		const options = assign({}, other, {
-			method: method.toUpperCase(),
-			headers,
-			body,
-		});
-
-		const finalURL = withQuery(url, query);
-
-		return fetch(finalURL, options).then((resp) => {
-			if (this.response) { return this.response; }
-
-			if (!resp.ok) {
-				const error = new Error(resp.statusText);
-				resp.status && (error.code = resp.status);
-				throw error;
-			}
-
-			this.response = resp;
-			const contentType = resp.headers.get('content-type');
-			if (contentType && contentType.indexOf('application/json') !== -1) {
-				return resp.json();
-			}
-			else {
-				return resp.text();
-			}
-		});
-	}
-
 	promise = this.exec;
 
-	exec() {
-		const promises = [
-			this._request(),
-			this._timeout(),
-		];
+	exec(input, opts) {
+		const request = () => {
+			const {
+				url,
+				method = 'GET',
+				query,
+				body,
+				headers = {},
+				parser,
+				...other,
+			} = this._req;
+
+			// if (!headers['Content-Type']) {
+			// 	headers['Content-Type'] = ContentTypes.JSON;
+			// }
+
+			const options = assign({
+				method: method.toUpperCase(),
+				body: serializeBody(body, headers),
+				headers,
+			}, other);
+
+			const finalURL = withQuery(url, query);
+
+			return fetch(finalURL, options).then((resp) => {
+				if (this.response) { return this.response; }
+
+				if (!resp.ok) {
+					const error = new Error(resp.statusText);
+					resp.status && (error.code = resp.status);
+					throw error;
+				}
+
+				this.response = resp;
+				const contentType = resp.headers.get('content-type');
+				if (contentType && contentType.indexOf('application/json') !== -1) {
+					return resp.json();
+				}
+				else {
+					return resp.text();
+				}
+			}).then(parseResp(parser));
+		};
+
+		this.options(input, opts);
+
+		const promises = [request(), this._timeout()];
 		this._req.cancellation && promises.push(this._cancel());
 		return Promise.race(promises);
 	}
