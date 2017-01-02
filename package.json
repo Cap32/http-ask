@@ -13,7 +13,7 @@
     "test:browser": "babel-node test/utils/karma.js",
     "test:node": "mocha --require=babel-register --delay test/node.js",
     "test": "npm run test:node && npm run test:browser",
-    "prepublish": "npm run build"
+    "prepublish": "npm run test && npm run build"
   },
   "main": "lib/index.js",
   "browser": "dist/http-ask.cjs.js",
