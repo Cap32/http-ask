@@ -44,21 +44,21 @@ const serializeBody = (body, headers) => {
 	return body;
 };
 
-const parseResp = (parsers = []) => (resp) => {
+const parseResp = (parsers = [], ctx) => (data) => {
 	const { length } = parsers;
 	let i = 0;
 	return new Promise((resolve) => {
-		const next = (resp) => {
+		const next = (data) => {
 			if (i < length) {
 				const parser = parsers[i];
 				i++;
-				Promise.resolve(parser(resp)).then(next);
+				Promise.resolve(parser(data, ctx.response)).then(next);
 			}
 			else {
-				resolve(resp);
+				resolve(data);
 			}
 		};
-		next(resp);
+		next(data);
 	});
 };
 
@@ -241,9 +241,13 @@ export default class Ask {
 				...other,
 			} = this._req;
 
-			// if (!headers['Content-Type']) {
-			// 	headers['Content-Type'] = ContentTypes.JSON;
-			// }
+			if (
+				body &&
+				!headers['Content-Type'] &&
+				(typeof FormData !== 'function' || !(body instanceof FormData))
+			) {
+				headers['Content-Type'] = ContentTypes.JSON;
+			}
 
 			const options = assign({
 				method: method.toUpperCase(),
@@ -270,7 +274,7 @@ export default class Ask {
 				else {
 					return resp.text();
 				}
-			}).then(parseResp(parser));
+			}).then(parseResp(parser, this));
 		};
 
 		this.options(input, opts);

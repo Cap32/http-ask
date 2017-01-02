@@ -24,7 +24,7 @@ export default (host) => {
 	it('body(json)', () => {
 		const body = { foo: 'bar' };
 		return Ask.create().post(`${host}/json`).body(body)
-			.set('Content-Type', 'application/json')
+			// .set('Content-Type', 'application/json')
 			.exec().then((resp) => assert.deepEqual(resp, body))
 		;
 	});
@@ -85,8 +85,25 @@ export default (host) => {
 		;
 	});
 
+	it('parser()', () => Ask
+		.create()
+		.get(`${host}/ok`)
+		.parser((data) => new Promise((resolve) => {
+			setTimeout(() => resolve(data), 100);
+		}))
+		.parser(() => 'no')
+		.parser((data, resp) => new Promise((resolve) => {
+			assert.equal(resp.status, 200);
+			resolve('yes');
+		}))
+		.exec()
+		.then((resp) => assert.equal(resp, 'yes'))
+	);
+
 	it('clone()', () => {
-		const origin = Ask.create().url(host);
+		const origin = Ask.create().url(host).parser((data) => Object.assign(data, {
+			parsed: true,
+		}));
 		const clone = origin.clone();
 
 		assert(clone instanceof Ask);
@@ -94,7 +111,11 @@ export default (host) => {
 		return Promise.all([
 			origin.get('ok').exec(),
 			clone.post('ok').exec(),
-		]).then((([a, b]) => assert(a.method !== b.method)));
+		]).then((([a, b]) => {
+			assert(a.parsed);
+			assert(b.parsed);
+			assert.notEqual(a.method, b.method);
+		}));
 	});
 
 	it('fork()', () => {
@@ -104,20 +125,6 @@ export default (host) => {
 			origin.fork({ method: 'POST' }),
 		]).then((([a, b]) => assert(a.method !== b.method)));
 	});
-
-	it('parser()', () => Ask
-		.create()
-		.get(`${host}/ok`)
-		.parser((resp) => new Promise((resolve) => {
-			setTimeout(() => resolve(resp), 1000);
-		}))
-		.parser(() => 'no')
-		.parser(() => new Promise((resolve) => {
-			resolve('yes');
-		}))
-		.exec()
-		.then((resp) => assert.equal(resp, 'yes'))
-	);
 
 	it('Ask.create()', () => assert(Ask.create() instanceof Ask));
 
