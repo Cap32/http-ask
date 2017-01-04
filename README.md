@@ -1,6 +1,6 @@
 A flexible promise based HTTP client for Node.js and browser.
 
-[![Build Status](https://travis-ci.org/Cap32/http-ask.svg?branch=master)](https://travis-ci.org/Cap32/http-ask)
+[![Build Status](https://travis-ci.org/Cap32/http-ask.svg?branch=master)](https://travis-ci.org/Cap32/http-ask) [![http-ask code style](https://img.shields.io/badge/code_style-http--ask-brightgreen.svg)](https://github.com/Cap32/http-ask)
 
 ## Features
 
