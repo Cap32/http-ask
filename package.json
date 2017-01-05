@@ -2,6 +2,7 @@
   "name": "http-ask",
   "version": "0.0.0-rc1",
   "description": "A flexible promise based HTTP client for Node.js and browser.",
+  "repository": "Cap32/http-ask",
   "scripts": {
     "prebuild": "rimraf ./dist && mkdirp ./dist && rimraf ./lib && mkdirp ./lib",
     "build:node": "babel src -o lib/index.js",
@@ -17,6 +18,15 @@
   },
   "main": "lib/index.js",
   "browser": "dist/http-ask.cjs.js",
+  "keywords": [
+    "fetch",
+    "xhr",
+    "http",
+    "ajax",
+    "promise",
+    "request",
+    "node"
+  ],
   "author": "cap32",
   "license": "MIT",
   "dependencies": {
