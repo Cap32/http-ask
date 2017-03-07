@@ -18,6 +18,11 @@
   },
   "main": "lib/index.js",
   "browser": "dist/http-ask.cjs.js",
+  "files": [
+    "lib",
+    "dist",
+    "*.md"
+  ],
   "keywords": [
     "fetch",
     "xhr",
