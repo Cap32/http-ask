@@ -28,6 +28,13 @@ export default (host) => {
 		;
 	});
 
+	it('lazy query but remove', () => {
+		const query = { foo: 'bar', baz: ({ remove }) => remove(), };
+		return Ask.create().get(`${host}/query`).query(query).exec()
+			.then((resp) => assert.deepEqual(resp, { foo: 'bar' }))
+		;
+	});
+
 	it('body(json)', () => {
 		const body = { foo: 'bar' };
 		return Ask.create().post(`${host}/json`).body(body)

@@ -62,15 +62,24 @@ const parseReq = (req) => {
 
 		return Object.keys(obj).reduce((newObj, key) => {
 			let val = obj[key];
-			if (isFunction(val)) { val = val(obj, req); }
-			newObj[key] = val;
+			let shouldRemove = false;
+			const remove = () => (shouldRemove = true);
+			if (isFunction(val)) { val = val({ req, remove }); }
+			if (!shouldRemove) { newObj[key] = val; }
 			return newObj;
 		}, {});
 	};
 
 	const parseArray = (arr) => {
 		if (!Array.isArray(arr)) { return arr; }
-		return arr.map((val) => isFunction(val) ? val(arr, req) : val);
+
+		return arr.reduce((newArr, val) => {
+			let shouldRemove = false;
+			const remove = () => (shouldRemove = true);
+			if (isFunction(val)) { val = val({ req, remove }); }
+			if (!shouldRemove) { newArr.push(val); }
+			return newArr;
+		}, []);
 	};
 
 	const headers = parseObject(originalHeaders);
