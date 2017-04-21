@@ -1,6 +1,6 @@
 {
   "name": "http-ask",
-  "version": "0.0.0-rc2",
+  "version": "0.0.0-rc3",
   "description": "A flexible promise based HTTP client for Node.js and browser.",
   "repository": "Cap32/http-ask",
   "scripts": {
