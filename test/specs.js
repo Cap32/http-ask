@@ -21,6 +21,13 @@ export default (host) => {
 		;
 	});
 
+	it('lazy query', () => {
+		const query = { foo: () => 'bar' };
+		return Ask.create().get(`${host}/query`).query(query).exec()
+			.then((resp) => assert.deepEqual(resp, { foo: 'bar' }))
+		;
+	});
+
 	it('body(json)', () => {
 		const body = { foo: 'bar' };
 		return Ask.create().post(`${host}/json`).body(body)

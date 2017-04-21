@@ -11,6 +11,8 @@ const ContentTypes = {
 };
 
 const isString = (target) => typeof target === 'string';
+const isFunction = (target) => typeof target === 'function';
+const isObject = (target) => typeof target === 'object';
 
 const serialize = (json) => Object
 	.keys(json)
@@ -44,7 +46,54 @@ const serializeBody = (body, headers) => {
 	return body;
 };
 
-const parseResp = (parsers = [], ctx) => (data) => {
+const parseReq = (req) => {
+	const {
+		method = 'GET',
+		url,
+		query,
+		body,
+		headers: originalHeaders,
+		parser,
+		...other,
+	} = req;
+
+	const parseObject = (obj) => {
+		if (!isObject(obj)) { return obj; }
+
+		return Object.keys(obj).reduce((newObj, key) => {
+			let val = obj[key];
+			if (isFunction(val)) { val = val(obj, req); }
+			newObj[key] = val;
+			return newObj;
+		}, {});
+	};
+
+	const parseArray = (arr) => {
+		if (!Array.isArray(arr)) { return arr; }
+		return arr.map((val) => isFunction(val) ? val(arr, req) : val);
+	};
+
+	const headers = parseObject(originalHeaders);
+
+	if (body && !headers['Content-Type'] &&
+		(typeof FormData === 'undefined' || !(body instanceof FormData))
+	) {
+		headers['Content-Type'] = ContentTypes.JSON;
+	}
+
+	return {
+		url: withQuery(parseArray(url), parseObject(query)),
+		parser,
+		options: {
+			method: method.toUpperCase(),
+			body: serializeBody(body, headers),
+			headers,
+			...other,
+		},
+	};
+};
+
+const parseRes = (parsers = [], ctx) => (data) => {
 	const { length } = parsers;
 	let i = 0;
 	return new Promise((resolve) => {
@@ -231,33 +280,9 @@ export default class Ask {
 
 	exec(input, opts) {
 		const request = () => {
-			const {
-				url,
-				method = 'GET',
-				query,
-				body,
-				headers = {},
-				parser,
-				...other,
-			} = this._req;
+			const { url, parser, options } = parseReq(this._req);
 
-			if (
-				body &&
-				!headers['Content-Type'] &&
-				(typeof FormData !== 'function' || !(body instanceof FormData))
-			) {
-				headers['Content-Type'] = ContentTypes.JSON;
-			}
-
-			const options = assign({
-				method: method.toUpperCase(),
-				body: serializeBody(body, headers),
-				headers,
-			}, other);
-
-			const finalURL = withQuery(url, query);
-
-			return fetch(finalURL, options).then((resp) => {
+			return fetch(url, options).then((resp) => {
 				if (this.response) { return this.response; }
 
 				if (!resp.ok) {
@@ -274,7 +299,7 @@ export default class Ask {
 				else {
 					return resp.text();
 				}
-			}).then(parseResp(parser, this));
+			}).then(parseRes(parser, this));
 		};
 
 		this.options(input, opts);
