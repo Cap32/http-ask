@@ -415,6 +415,47 @@ Set HTTP request header.
 
 ---
 
+#### Method: ask#parser(parser)
+
+Add a response parser.
+
+A parser is a function that receives two arguments:
+
+1. `data` (Any): The response data
+2. `response` (Response): The Response instance
+
+Parser should return a promise. The promise value will be passed to the next parser.
+
+##### Arguments
+
+1. `parser` (Function): Response parser.
+
+##### Return
+
+(Object): `ask` instance.
+
+##### Example
+```js
+Ask
+	.create('http://localhost/test')
+	.parser((data, response) => {
+		console.log('Status:', response.status);
+		Promise.resolve('awesome!!!');
+	})
+	.parser((data, response) => {
+		console.log('Data:', data);
+		return data;
+	})
+	.exec()
+;
+// will log:
+
+// Status: 200
+// Data: awesome!!!
+```
+
+---
+
 #### Method: ask#timeout(ms)
 
 Set HTTP request timeout.
