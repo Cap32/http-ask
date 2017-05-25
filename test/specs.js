@@ -67,6 +67,14 @@ export default (host) => {
 		.then((resp) => assert(resp.foo, 'bar'))
 	);
 
+	it('header(json)', () => Ask
+		.create()
+		.get(`${host}/headers`)
+		.header({ foo: 'bar' })
+		.exec()
+		.then((resp) => assert(resp.foo, 'bar'))
+	);
+
 	it('composable query and url', () => Ask
 		.create(host)
 		.get('foo')

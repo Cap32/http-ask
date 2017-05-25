@@ -253,6 +253,10 @@ export default class Ask {
 		return this;
 	}
 
+	header(set) {
+		return this.headers(set);
+	}
+
 	cancellation(cancellation) {
 		this._req.cancellation = cancellation;
 		return this;
