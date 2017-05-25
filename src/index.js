@@ -187,13 +187,14 @@ export default class Ask {
 			input = opts.url;
 		}
 
-		const { query, headers, url = input, ...other } = opts;
+		const { query, headers, header, url = input, ...other } = opts;
 
 		this._req = assign(this._req || {}, other);
 
 		url && this.url(url);
 		query && this.query(query);
 		headers && this.headers(headers);
+		header && this.headers(header);
 
 		return this;
 	}
