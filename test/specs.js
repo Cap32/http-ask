@@ -4,6 +4,14 @@ import f from '../src';
 
 export default (host) => {
 	describe('fetch', () => {
+		it('should throw error if missing url', async () => {
+			return f
+				.etch()
+				.then(() => assert(false))
+				.catch(assert)
+			;
+		});
+
 		it('f.etch(url)', async () => f.etch(`${host}/ok`));
 
 		it('f.fetch(url)', async () => f.etch(`${host}/ok`));
@@ -171,33 +179,6 @@ export default (host) => {
 		});
 	});
 
-	describe('query', function () {
-		it('query object', async () => {
-			const body = await f.etch(`${host}/query`, {
-				resolveWith: 'json',
-				query: { hello: 'world' },
-			});
-			assert.deepEqual(body, { hello: 'world' });
-		});
-
-		it('query string', async () => {
-			const body = await f.etch(`${host}/query`, {
-				resolveWith: 'json',
-				query: 'hello=world',
-			});
-			assert.deepEqual(body, { hello: 'world' });
-		});
-
-		it('query mixed', async () => {
-			const baseF = f(`${host}/query`, {
-				resolveWith: 'json',
-				query: 'hello=world',
-			});
-			const body = await baseF.etch({ query: 'it=works' });
-			assert.deepEqual(body, { hello: 'world', it: 'works' });
-		});
-	});
-
 	describe('url', function () {
 		it('url string', () => {
 			const url = `${host}/foo/bar`;
@@ -225,5 +206,86 @@ export default (host) => {
 			;
 			assert(client.compose().url === `${host}/foo/baz`);
 		});
+
+		it('modify url', () => {
+			const client = f({ url: host })
+				.set('url', (urls) => urls.concat('/foo/bar'))
+			;
+			assert(client.compose().url === `${host}/foo/bar`);
+		});
 	});
+
+	describe('query', function () {
+		const url = 'http://localhost';
+
+		it('query object', () => {
+			const client = f(url, { query: { hello: 'world' } });
+			const composedUrl = client.compose().url;
+			assert(composedUrl === `${url}?hello=world`);
+		});
+
+		it('query string', () => {
+			const client = f(url, { query: 'hello=world' });
+			const composedUrl = client.compose().url;
+			assert(composedUrl === `${url}?hello=world`);
+		});
+
+		it('query mixed', async () => {
+			const client = f(url, { query: 'hello=world' })
+				.set('query', { it: 'works' })
+			;
+			const composedUrl = client.compose().url;
+			assert(
+				composedUrl === `${url}?hello=world&it=works` ||
+				composedUrl === `${url}?it=works&hello=world`
+			);
+		});
+
+		it('modify query', () => {
+			const client = f(url, { query: 'hello=world' })
+				.set('query', () => [{ hello: 'chris' }])
+			;
+			const composedUrl = client.compose().url;
+			assert(composedUrl === `${url}?hello=chris`);
+		});
+	});
+
+	describe('headers', function () {
+		const url = 'http://localhost';
+
+		it('headers', () => {
+			const client = f(url, { headers: { hello: 'world' } });
+			const { headers } = client.compose();
+			assert.deepEqual(headers, { hello: 'world' });
+		});
+
+		it('extends headers', () => {
+			const client = f(url, { headers: { hello: 'world' } })
+				.set('headers', { it: 'works' })
+			;
+			const { headers } = client.compose();
+			assert.deepEqual(headers, { hello: 'world', it: 'works' });
+		});
+
+		it('override headers', () => {
+			const client = f(url, { headers: { hello: 'world' } })
+				.set('headers', { hello: 'chris' })
+			;
+			const { headers } = client.compose();
+			assert.deepEqual(headers, { hello: 'chris' });
+		});
+
+		it('modify headers', () => {
+			const client = f(url, { headers: { hello: 'world' } })
+				.set('headers', (headers) => {
+					headers.hello = 'chris';
+					headers.it = 'works';
+					return headers;
+				})
+			;
+			const { headers } = client.compose();
+			assert.deepEqual(headers, { hello: 'chris', it: 'works' });
+		});
+	});
+
 };

@@ -145,11 +145,16 @@ assign(Fetc.prototype, {
 		});
 	},
 	fetch(...args) {
-		const options = this.compose(...args);
-		const { resolveWith } = options;
-		return realFetch(options.url, options).then((response) => {
-			return resolveWith ? response[resolveWith]() : response;
-		});
+		try {
+			const options = this.compose(...args);
+			const { resolveWith } = options;
+			return realFetch(options.url, options).then((response) => {
+				return resolveWith ? response[resolveWith]() : response;
+			});
+		}
+		catch (err) {
+			return Promise.reject(err);
+		}
 	},
 	etch(...args) {
 		return this.fetch(...args);
