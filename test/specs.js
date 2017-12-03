@@ -306,4 +306,53 @@ export default (host) => {
 		});
 	});
 
+	describe('body', function () {
+		const url = 'http://localhost';
+
+		it('body', () => {
+			const client = f(url, { body: { hello: 'world' } });
+			const { body } = client.compose();
+			assert.deepEqual(body, { hello: 'world' });
+		});
+
+		it('extends body', () => {
+			const client = f(url, { body: { hello: 'world' } })
+				.set('body', { it: 'works' })
+			;
+			const { body } = client.compose();
+			assert.deepEqual(body, { hello: 'world', it: 'works' });
+		});
+
+		it('override body', () => {
+			const client = f(url, { body: { hello: 'world' } })
+				.set('body', { hello: 'chris' })
+			;
+			const { body } = client.compose();
+			assert.deepEqual(body, { hello: 'chris' });
+		});
+
+		it('modify body', () => {
+			const client = f(url, { body: { hello: 'world' } })
+				.set('body', (body) => {
+					body.hello = 'chris';
+					body.it = 'works';
+					return body;
+				})
+			;
+			const { body } = client.compose();
+			assert.deepEqual(body, { hello: 'chris', it: 'works' });
+		});
+
+		it('body with type: json', () => {
+			const client = f(url, { body: { hello: 'world' }, type: 'json' });
+			const { body } = client.compose();
+			assert(body === JSON.stringify({ hello: 'world' }));
+		});
+
+		it('body with type: form', () => {
+			const client = f(url, { body: { hello: 'world' }, type: 'form' });
+			const { body } = client.compose();
+			assert(body === 'hello=world');
+		});
+	});
 };

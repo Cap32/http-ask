@@ -5,7 +5,7 @@ import { name } from '../package.json';
 
 createServer((host) => {
 	describe(name, () => {
-		specs(host);
+		specs(host, { isNode: true });
 		after(closeServer);
 	});
 
