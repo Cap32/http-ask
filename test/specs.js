@@ -286,6 +286,24 @@ export default (host) => {
 			const { headers } = client.compose();
 			assert.deepEqual(headers, { hello: 'chris', it: 'works' });
 		});
+
+		it('headers with type: json', () => {
+			const client = f(url, { headers: { hello: 'world' }, type: 'json' });
+			const { headers } = client.compose();
+			assert.deepEqual(headers, {
+				hello: 'world',
+				'Content-Type': 'application/json',
+			});
+		});
+
+		it('headers with type: form', () => {
+			const client = f(url, { headers: { hello: 'world' }, type: 'form' });
+			const { headers } = client.compose();
+			assert.deepEqual(headers, {
+				hello: 'world',
+				'Content-Type': 'application/x-www-form-urlencoded',
+			});
+		});
 	});
 
 };

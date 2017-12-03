@@ -4,8 +4,8 @@ import { stringify as serialize } from 'tiny-querystring';
 const realFetch = typeof window === 'object' ? fetch : require('node-fetch');
 
 const ContentTypes = {
-	FORM: 'application/x-www-form-urlencoded',
-	JSON: 'application/json',
+	form: 'application/x-www-form-urlencoded',
+	json: 'application/json',
 };
 
 const { assign } = Object;
@@ -60,14 +60,19 @@ const composeURL = function composeURL(url, queries) {
 const composeBody = function composeBody(body, headers) {
 	const contentType = headers['Content-Type'];
 	if (body && !isString(body)) {
-		if (contentType === ContentTypes.JSON) {
+		if (contentType === ContentTypes.json) {
 			return JSON.stringify(body);
 		}
-		else if (contentType === ContentTypes.FORM) {
+		else if (contentType === ContentTypes.form) {
 			return serialize(body);
 		}
 	}
 	return body;
+};
+
+const composeHeaders = function composeHeaders(headers, type) {
+	if (type) { headers['Content-Type'] = ContentTypes[type] || type; }
+	return headers;
 };
 
 const Fetc = function Fetc(...args) {
@@ -128,20 +133,18 @@ assign(Fetc.prototype, {
 	clone() {
 		return new Fetc(this);
 	},
-	composeURL(url, query) {
-		return composeURL(url, query);
-	},
-	composeBody(body, headers) {
-		return composeBody(body, headers);
-	},
 	compose(...args) {
 		const instance = this.clone();
 		instance._from(...args);
-		const { url, query, body, headers, ...other } = instance.req;
+		const {
+			url, query, body, type, headers: rawHeaders,
+			...other
+		} = instance.req;
+		const headers = composeHeaders(rawHeaders, type);
 		return assign(other, {
 			headers,
-			url: this.composeURL(url, query),
-			body: this.composeBody(body, headers),
+			url: composeURL(url, query),
+			body: composeBody(body, headers),
 		});
 	},
 	fetch(...args) {
