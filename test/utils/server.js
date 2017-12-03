@@ -28,10 +28,13 @@ export const server = http.createServer((req, res) => {
 		'POST /form': () => bodyParser.form(req).then(end),
 		'GET /headers': () => end(headers),
 		'GET /delay': () => delay(query.delay)
-			.then(() => end({ delay: query.delay || 1000 }))
-		,
+			.then(() => end({ delay: query.delay || 1000 })),
 		'GET /foo/bar': () => end(query),
 		'GET /bad': () => end(null, 400),
+		'GET /text': () => cors()(req, res, () => {
+			res.writeHead(200, { 'Content-Type': 'text/html' });
+			res.end('ok');
+		}),
 	};
 
 	const route = `${method} ${pathname}`;

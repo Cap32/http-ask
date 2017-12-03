@@ -1,6 +1,8 @@
 
 import specs from './specs';
+import 'babel-polyfill';
+import { name } from '../package.json';
 
 const host = window.__karma__.config.args[0];
 
-describe('http-ask', () => specs(host));
+describe(name, () => specs(host));
