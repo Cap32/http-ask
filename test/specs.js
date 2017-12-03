@@ -51,6 +51,126 @@ export default (host) => {
 		});
 	});
 
+	describe('client constructor', function () {
+		it('constructor()', async () => {
+			const client = f();
+			assert(client instanceof f);
+		});
+
+		it('constructor() with url', async () => {
+			const client = f(`${host}/ok`);
+			const { url } = client.req;
+			assert(url[0] === `${host}/ok`);
+		});
+
+		it('constructor() with options', async () => {
+			const client = f({ url: `${host}/ok`, resolveWith: 'json', method: 'PUT' });
+			const { url, method, resolveWith } = client.req;
+			assert(url[0] === `${host}/ok`);
+			assert(method === 'PUT');
+			assert(resolveWith === 'json');
+		});
+
+		it('constructor() with url and options', async () => {
+			const client = f(`${host}/ok`, { resolveWith: 'json', method: 'PUT' });
+			const { url, method, resolveWith } = client.req;
+			assert(url[0] === `${host}/ok`);
+			assert(method === 'PUT');
+			assert(resolveWith === 'json');
+		});
+
+		it('constructor() with another client', async () => {
+			const baseClient = f({ resolveWith: 'json', method: 'PUT' });
+			const client = f(baseClient);
+			const { method, resolveWith } = client.req;
+			assert(method === 'PUT');
+			assert(resolveWith === 'json');
+		});
+
+		it('constructor() with options override', async () => {
+			const baseClient = f({ resolveWith: 'json', method: 'PUT' });
+			const client = f({ method: 'POST' }, baseClient);
+			const { method } = client.req;
+			assert(method === 'PUT');
+		});
+	});
+
+	describe('client props', function () {
+		it('client.req', async () => {
+			const client = f();
+			const { url, query, body, headers, method } = client.req;
+			assert(method === 'GET');
+			assert.deepEqual(headers, {});
+			assert.deepEqual(body, {});
+			assert(Array.isArray(query));
+			assert(Array.isArray(url));
+		});
+
+		it('client.compose()', async () => {
+			const url = `${host}/ok`;
+			const method = 'POST';
+			const query = { hello: 'world' };
+			const client = f({ url, method, query });
+			const options = client.compose();
+			assert(options.method === method);
+			assert(options.url === `${url}?hello=world`);
+		});
+
+		it('client.fetch()', async () => {
+			const client = f(`${host}/ok`, { resolveWith: 'json', method: 'POST' });
+			const body = await client.fetch();
+			assert.deepEqual(body, { method: 'POST' });
+		});
+
+		it('client.etch()', async () => {
+			const client = f(`${host}/ok`, { resolveWith: 'json', method: 'POST' });
+			const body = await client.fetch();
+			assert.deepEqual(body, { method: 'POST' });
+		});
+
+		it('client.fetch() options override original options', async () => {
+			const client = f(`${host}/ok`, { resolveWith: 'json', method: 'GET' });
+			const body = await client.fetch({ method: 'POST' });
+			assert.deepEqual(body, { method: 'POST' });
+		});
+
+		it('client.fetch() multiple times', async () => {
+			const client = f(`${host}/ok`, { resolveWith: 'json', method: 'GET' });
+			const body1 = await client.fetch({ method: 'POST' });
+			assert.deepEqual(body1, { method: 'POST' });
+			const body2 = await client.fetch();
+			assert.deepEqual(body2, { method: 'GET' });
+		});
+
+		it('client.set() with key and value', async () => {
+			const client = f().set('method', 'POST');
+			const { method } = client.req;
+			assert(method === 'POST');
+		});
+
+		it('client.set() with object', async () => {
+			const client = f().set({ method: 'POST' });
+			const { method } = client.req;
+			assert(method === 'POST');
+		});
+
+		it('client.set() with another client', async () => {
+			const baseClient = f({ method: 'POST' });
+			const client = f().set(baseClient);
+			const { method } = client.req;
+			assert(method === 'POST');
+		});
+
+		it('client.clone()', async () => {
+			const client = f({ method: 'POST' });
+			const cloned = client.clone();
+			assert(cloned instanceof f);
+			assert(cloned.req.method === 'POST');
+			client.set('method', 'DELETE');
+			assert(cloned.req.method === 'POST');
+		});
+	});
+
 	describe('query', function () {
 		it('query object', async () => {
 			const body = await f.etch(`${host}/query`, {
@@ -76,5 +196,24 @@ export default (host) => {
 			const body = await baseF.etch({ query: 'it=works' });
 			assert.deepEqual(body, { hello: 'world', it: 'works' });
 		});
+	});
+
+	describe('url', function () {
+		it('url string', async () => {
+			const body = await f.etch({ url: `${host}/foo/bar`, resolveWith: 'json' });
+			assert.deepEqual(body, { pathname: '/foo/bar' });
+		});
+
+		it('extends url', async () => {
+			const client = f({ url: host, resolveWith: 'json' });
+			const body = await client.etch({ url: '/foo/bar' });
+			assert.deepEqual(body, { pathname: '/foo/bar' });
+		});
+
+		// it('override url', async () => {
+		// 	const client = f({ url: 'http://google.com', resolveWith: 'json' });
+		// 	const body = await client.etch({ url: `${host}/foo/bar` });
+		// 	assert.deepEqual(body, { pathname: '/foo/bar' });
+		// });
 	});
 };

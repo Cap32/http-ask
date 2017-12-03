@@ -5,7 +5,7 @@ import bodyParser from 'co-body';
 import qs from 'qs';
 import cors from 'cors';
 
-const delay = (t = 1000) => new Promise((done) => setTimeout(done, t));
+const delay = (t = 1000) => new Promise((resolve) => setTimeout(resolve, t));
 
 export const server = http.createServer((req, res) => {
 	const { method, headers, url: reqURL } = req;
@@ -29,7 +29,7 @@ export const server = http.createServer((req, res) => {
 		'GET /headers': () => end(headers),
 		'GET /delay': () => delay(query.delay)
 			.then(() => end({ delay: query.delay || 1000 })),
-		'GET /foo/bar': () => end(query),
+		'GET /foo/bar': () => end({ pathname: '/foo/bar' }),
 		'GET /bad': () => end(null, 400),
 		'GET /text': () => cors()(req, res, () => {
 			res.writeHead(200, { 'Content-Type': 'text/html' });
