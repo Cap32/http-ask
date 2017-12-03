@@ -19,6 +19,8 @@ const resolveUrls = function resolveUrls(urls) {
 		const list = str.split('/').filter((path) => path && path !== '.');
 		paths.push.apply(paths, list);
 	};
+	urls = urls.filter(Boolean);
+	if (!urls.length) { throw new Error('Missing url'); }
 	urls.forEach((url) => {
 		const protocolIndex = url.indexOf('://');
 		if (protocolIndex > -1) {
@@ -105,7 +107,7 @@ assign(Fetc.prototype, {
 			const prev = req[key];
 			const arrKeys = ['url', 'query'];
 			if (isFunction(val)) {
-				val(prev, req, key);
+				req[key] = val(prev, req, key);
 			}
 			else if (~arrKeys.indexOf(key)) {
 				prev.push.apply(prev, [].concat(val));
