@@ -31,16 +31,17 @@ module.exports = (config) => {
 
 
 		webpack: {
-			resolve: {
-				extensions: ['.js'],
-			},
+			entry: () => ({}),
+			// resolve: {
+			// 	extensions: ['.js'],
+			// },
 			module: {
 				rules: [
 					{
 						test: /\.jsx?$/,
 						// include: [srcDir, testDir],
-						loader: 'babel',
-						query: {
+						loader: 'babel-loader',
+						options: {
 							presets: [
 								['es2015', { modules: false }],
 								'stage-0',

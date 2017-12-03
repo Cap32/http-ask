@@ -12,6 +12,7 @@ const srcDir = inSrc();
 const testDir = inTest();
 
 export default {
+	entry: () => ({}),
 	output: {
 		library: 'Ask',
 		libraryTarget: 'umd',
@@ -21,8 +22,8 @@ export default {
 			{
 				test: /\.jsx?$/,
 				include: [srcDir, testDir],
-				loader: 'babel',
-				query: {
+				loader: 'babel-loader',
+				options: {
 					presets: [
 						['es2015', { modules: false }],
 						'stage-0',
@@ -43,7 +44,7 @@ export default {
 	],
 	resolve: {
 		modules: [srcDir, 'node_modules'],
-		extensions: ['.js'],
+		// extensions: ['.js'],
 	},
 	devtool: 'source-map',
 };
