@@ -1,5 +1,4 @@
 
-import urlJoin from 'url-join';
 import { stringify as serialize } from 'tiny-querystring';
 
 const realFetch = typeof window === 'object' ? fetch : require('node-fetch');
@@ -14,20 +13,49 @@ const isString = (target) => typeof target === 'string';
 const isFunction = (target) => typeof target === 'function';
 const isObject = (target) => typeof target === 'object';
 
-const composeURL = (url, queries) => {
-	const serializedQuery = queries
+const resolveUrls = function resolveUrls(urls) {
+	const paths = [];
+	const separateBySlash = function separateBySlash(str) {
+		const list = str.split('/').filter((path) => path && path !== '.');
+		paths.push.apply(paths, list);
+	};
+	urls.forEach((url) => {
+		const protocolIndex = url.indexOf('://');
+		if (protocolIndex > -1) {
+			paths.length = 0;
+			paths.push(url.substr(0, protocolIndex) + ':/');
+			separateBySlash(url.substr(protocolIndex + 3));
+		}
+		else {
+			separateBySlash(url);
+		}
+	});
+	const resolvedUrl = paths
+		.reduce((list, path) => {
+			if (path === '..' && list.length) { list.pop(); }
+			else if (path !== '.') { list.push(path); }
+			return list;
+		}, [])
+		.join('/')
+	;
+	const isLastSlash = urls[urls.length - 1].substr(-1) === '/';
+	return isLastSlash ? (resolvedUrl + '/') : resolvedUrl;
+};
+
+const composeURL = function composeURL(url, queries) {
+	const queryStr = queries
 		.reduce((list, query) => {
 			list.push(isObject(query) ? serialize(query) : query);
 			return list;
 		}, [])
 		.join('&')
 	;
-	const urlPrefix = urlJoin.apply(null, url);
-	const separator = ~urlPrefix.indexOf('?') ? '&' : '?';
-	return urlPrefix + separator + serializedQuery;
+	const urlPrefix = resolveUrls(url);
+	const sep = ~urlPrefix.indexOf('?') ? '&' : '?';
+	return queryStr ? (urlPrefix + sep + queryStr) : urlPrefix;
 };
 
-const composeBody = (body, headers) => {
+const composeBody = function composeBody(body, headers) {
 	const contentType = headers['Content-Type'];
 	if (body && !isString(body)) {
 		if (contentType === ContentTypes.JSON) {
@@ -104,8 +132,10 @@ assign(Fetc.prototype, {
 	composeBody(body, headers) {
 		return composeBody(body, headers);
 	},
-	compose() {
-		const { url, query, body, headers, ...other } = this.req;
+	compose(...args) {
+		const instance = this.clone();
+		instance._from(...args);
+		const { url, query, body, headers, ...other } = instance.req;
 		return assign(other, {
 			headers,
 			url: this.composeURL(url, query),
@@ -113,9 +143,7 @@ assign(Fetc.prototype, {
 		});
 	},
 	fetch(...args) {
-		const instance = this.clone();
-		instance._from(...args);
-		const options = instance.compose();
+		const options = this.compose(...args);
 		const { resolveWith } = options;
 		return realFetch(options.url, options).then((response) => {
 			return resolveWith ? response[resolveWith]() : response;

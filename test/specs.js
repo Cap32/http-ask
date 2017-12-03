@@ -199,21 +199,31 @@ export default (host) => {
 	});
 
 	describe('url', function () {
-		it('url string', async () => {
-			const body = await f.etch({ url: `${host}/foo/bar`, resolveWith: 'json' });
-			assert.deepEqual(body, { pathname: '/foo/bar' });
+		it('url string', () => {
+			const url = `${host}/foo/bar`;
+			const client = f({ url });
+			assert(client.compose().url === url);
 		});
 
-		it('extends url', async () => {
-			const client = f({ url: host, resolveWith: 'json' });
-			const body = await client.etch({ url: '/foo/bar' });
-			assert.deepEqual(body, { pathname: '/foo/bar' });
+		it('extends url', () => {
+			const client = f({ url: host }).set('url', '/foo/bar');
+			assert(client.compose().url === `${host}/foo/bar`);
 		});
 
-		// it('override url', async () => {
-		// 	const client = f({ url: 'http://google.com', resolveWith: 'json' });
-		// 	const body = await client.etch({ url: `${host}/foo/bar` });
-		// 	assert.deepEqual(body, { pathname: '/foo/bar' });
-		// });
+		it('override url', () => {
+			const client = f({ url: 'http://google.com' })
+				.set('url', host)
+				.set('url', '/foo/bar')
+			;
+			assert(client.compose().url === `${host}/foo/bar`);
+		});
+
+		it('resolve url', () => {
+			const client = f({ url: host })
+				.set('url', '/foo/bar/')
+				.set('url', '../baz')
+			;
+			assert(client.compose().url === `${host}/foo/baz`);
+		});
 	});
 };
