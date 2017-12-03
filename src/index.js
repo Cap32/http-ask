@@ -112,7 +112,7 @@ assign(Fetc.prototype, {
 			body: this.composeBody(body, headers),
 		});
 	},
-	etch(...args) {
+	fetch(...args) {
 		const instance = this.clone();
 		instance._from(...args);
 		const options = instance.compose();
@@ -121,13 +121,13 @@ assign(Fetc.prototype, {
 			return resolveWith ? response[resolveWith]() : response;
 		});
 	},
-	h(...args) {
-		return this.etch(...args);
+	etch(...args) {
+		return this.fetch(...args);
 	},
 });
 
 const f = new Fetc();
-Fetc.h = f.etch.bind(f);
-Fetc.etch = Fetc.h;
+Fetc.fetch = f.fetch.bind(f);
+Fetc.etch = Fetc.fetch;
 
 export default Fetc;

@@ -6,6 +6,8 @@ export default (host) => {
 	describe('fetch', () => {
 		it('f.etch(url)', async () => f.etch(`${host}/ok`));
 
+		it('f.fetch(url)', async () => f.etch(`${host}/ok`));
+
 		it('response', async () => {
 			const response = await f.etch(`${host}/ok`);
 			const json = await response.json();
