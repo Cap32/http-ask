@@ -4,12 +4,8 @@ import f from '../src';
 
 export default (host) => {
 	describe('fetch', () => {
-		it('should throw error if missing url', async () => {
-			return f
-				.etch()
-				.then(() => assert(false))
-				.catch(assert)
-			;
+		it('should throw error if missing url', () => {
+			return f.etch().then(() => assert(false)).catch(assert);
 		});
 
 		it('f.etch(url)', async () => f.etch(`${host}/ok`));
