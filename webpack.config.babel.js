@@ -20,7 +20,7 @@ export default {
 	module: {
 		rules: [
 			{
-				test: /\.jsx?$/,
+				test: /\.js$/,
 				include: [srcDir, testDir],
 				loader: 'babel-loader',
 				options: {
@@ -44,7 +44,6 @@ export default {
 	],
 	resolve: {
 		modules: [srcDir, 'node_modules'],
-		// extensions: ['.js'],
 	},
 	devtool: 'source-map',
 };

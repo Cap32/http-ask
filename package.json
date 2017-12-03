@@ -43,7 +43,7 @@
     "babel-cli": "^6.16.0",
     "babel-core": "^6.17.0",
     "babel-eslint": "^7.0.0",
-    "babel-loader": "^6.2.5",
+    "babel-loader": "^7.1.2",
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-plugin-system-import-transformer": "^2.4.0",
     "babel-polyfill": "^6.26.0",
@@ -53,11 +53,15 @@
     "co-body": "^4.2.0",
     "cors": "^2.8.1",
     "cross-env": "^3.1.3",
-    "eslint": "^3.8.1",
-    "eslint-import-resolver-webpack": "^0.6.0",
-    "eslint-loader": "^1.6.0",
+    "eslint": "^4.12.1",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-import-resolver-webpack": "^0.8.3",
+    "eslint-loader": "^1.9.0",
     "eslint-plugin-babel": "^3.3.0",
-    "eslint-plugin-import": "^2.0.1",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-node": "^5.2.1",
+    "eslint-plugin-promise": "^3.6.0",
+    "eslint-plugin-standard": "^3.0.1",
     "karma": "^1.3.0",
     "karma-chrome-launcher": "^2.0.0",
     "karma-mocha": "^1.2.0",
@@ -68,7 +72,6 @@
     "output-host": "^1.1.0",
     "qs": "^6.3.0",
     "rimraf": "^2.6.2",
-    "webpack": "^3.9.1",
-    "webpack-dev-server": "^2.9.5"
+    "webpack": "^3.9.1"
   }
 }

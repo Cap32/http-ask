@@ -32,9 +32,6 @@ module.exports = (config) => {
 
 		webpack: {
 			entry: () => ({}),
-			// resolve: {
-			// 	extensions: ['.js'],
-			// },
 			module: {
 				rules: [
 					{
