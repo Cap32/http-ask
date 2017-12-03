@@ -1,39 +1,28 @@
 
-import 'isomorphic-fetch';
-import assign from 'object-assign';
 import urlJoin from 'url-join';
+import { stringify as serialize } from 'tiny-querystring';
 
-const DEFAULT_TIMEOUT = 30000;
+const realFetch = typeof window === 'object' ? fetch : require('node-fetch');
 
 const ContentTypes = {
 	FORM: 'application/x-www-form-urlencoded',
 	JSON: 'application/json',
 };
 
+const { assign } = Object;
 const isString = (target) => typeof target === 'string';
 const isFunction = (target) => typeof target === 'function';
 const isObject = (target) => typeof target === 'object';
 
-const serialize = (json) => Object
-	.keys(json)
-	.map((key) => `${key}=${encodeURIComponent(json[key])}`)
-	.join('&')
-;
-
-const withQuery = (url, query) => {
-	const queryString = serialize(query);
-	const joinedUrl = urlJoin(...url);
-	const partials = joinedUrl.split('?');
-	const pathname = partials.shift();
-	const queryStringAlt = partials.join('?');
-	const queryStringArr = [queryString, queryStringAlt];
-	const finalQueryString = queryStringArr.filter(Boolean).join('&');
-	return [pathname, finalQueryString].filter(Boolean).join('?');
+const composeURL = (url, query) => {
+	const serializedQuery = serialize(query);
+	const urlPrefix = urlJoin.apply(null, url);
+	const separator = ~urlPrefix.indexOf('?') ? '&' : '?';
+	return urlPrefix + separator + serializedQuery;
 };
 
-const serializeBody = (body, headers) => {
+const composeBody = (body, headers) => {
 	const contentType = headers['Content-Type'];
-
 	if (body && !isString(body)) {
 		if (contentType === ContentTypes.JSON) {
 			return JSON.stringify(body);
@@ -42,284 +31,88 @@ const serializeBody = (body, headers) => {
 			return serialize(body);
 		}
 	}
-
 	return body;
 };
 
-const parseReq = (req) => {
-	const {
-		method = 'GET',
-		url,
-		query,
-		body,
-		headers: originalHeaders,
-		parser,
-		...other,
-	} = req;
-
-	const parseObject = (obj) => {
-		if (!isObject(obj)) { return obj; }
-
-		return Object.keys(obj).reduce((newObj, key) => {
-			let val = obj[key];
-			let shouldRemove = false;
-			const remove = () => (shouldRemove = true);
-			if (isFunction(val)) { val = val({ req, remove }); }
-			if (!shouldRemove) { newObj[key] = val; }
-			return newObj;
-		}, {});
-	};
-
-	const parseArray = (arr) => {
-		if (!Array.isArray(arr)) { return arr; }
-
-		return arr.reduce((newArr, val) => {
-			let shouldRemove = false;
-			const remove = () => (shouldRemove = true);
-			if (isFunction(val)) { val = val({ req, remove }); }
-			if (!shouldRemove) { newArr.push(val); }
-			return newArr;
-		}, []);
-	};
-
-	const headers = parseObject(originalHeaders);
-
-	if (body && !headers['Content-Type'] &&
-		(typeof FormData === 'undefined' || !(body instanceof FormData))
-	) {
-		headers['Content-Type'] = ContentTypes.JSON;
+const Fetc = function Fetc(...args) {
+	if (!(this instanceof Fetc)) {
+		return new Fetc(...args);
 	}
 
-	return {
-		url: withQuery(parseArray(url), parseObject(query)),
-		parser,
-		options: {
-			method: method.toUpperCase(),
-			body: serializeBody(body, headers),
-			headers,
-			...other,
-		},
+	this.req = {
+		url: [],
+		query: {},
+		body: {},
+		headers: {},
+		method: 'GET',
 	};
+	this._from(...args);
 };
 
-const parseRes = (parsers = [], ctx) => (data) => {
-	const { length } = parsers;
-	let i = 0;
-	return new Promise((resolve) => {
-		const next = (data) => {
-			if (i < length) {
-				const parser = parsers[i];
-				i++;
-				Promise.resolve(parser(data, ctx.response)).then(next);
-			}
-			else {
-				resolve(data);
-			}
-		};
-		next(data);
-	});
-};
-
-export class Cancellation {
-	constructor(message) {
-		this.statusText = this.message = message || 'Request Canceled';
-		this.status = 'canceled';
-		this.ok = false;
-		this._handleCancel = () => {};
-	}
-
-	__listen() {
-		return new Promise((resolve, reject) => {
-			this._handleCancel = reject;
+assign(Fetc.prototype, {
+	_from(...args) {
+		args.forEach((arg) => {
+			if (isString(arg)) { this.set('url', arg); }
+			else if (isObject(arg)) { this.set(arg); }
 		});
-	}
-
-	cancel() {
-		this._handleCancel(this);
-	}
-}
-
-export default class Ask {
-	static create(input, opts) {
-		return new Ask(input, opts);
-	}
-
-	static clone(ask) {
-		return ask.clone();
-	}
-
-	static request(input, opts) {
-		return new Ask(input, opts).exec();
-	}
-
-	static Cancellation = Cancellation;
-
-	constructor(input, opts = {}) {
-		this._req = {
-			url: [],
-			parser: [],
-			query: {},
-			headers: {},
-			method: 'GET',
-		};
-
-		this.options(input, opts);
-		this.response = null;
-	}
-
-	clone(input, opts) {
-		const { _req } = this;
-		const url = [].concat(_req.url);
-		const parser = [].concat(_req.parser);
-		const query = assign({}, _req.query);
-		const headers = assign({}, _req.headers);
-		const req = assign({}, _req, { url, parser, query, headers });
-		return new Ask(req).options(input, opts);
-	}
-
-	fork(input, opts) {
-		return this.clone(input, opts).exec();
-	}
-
-	options(input = '', opts = {}) {
-		if (!isString(input)) {
-			assign(opts, input);
-			input = opts.url;
+	},
+	set(maybeKey, val) {
+		if (maybeKey instanceof Fetc) {
+			const instance = maybeKey;
+			this.set(instance.req);
 		}
-
-		const { query, headers, header, url = input, ...other } = opts;
-
-		this._req = assign(this._req || {}, other);
-
-		url && this.url(url);
-		query && this.query(query);
-		headers && this.headers(headers);
-		header && this.headers(header);
-
+		else if (isFunction(maybeKey)) {
+			const modify = maybeKey;
+			modify(this.req);
+		}
+		else if (isString(maybeKey)) {
+			const key = maybeKey;
+			const { req } = this;
+			const prev = req[key];
+			if (isFunction(val)) { val(prev, req, key); }
+			else if (key === 'url') { prev.push.apply(prev, [].concat(val)); }
+			else if (isObject(prev) && isObject(val)) { assign(prev, val); }
+			else { req[key] = val; }
+		}
+		else if (isObject(maybeKey)) {
+			const obj = maybeKey;
+			Object.keys(obj).forEach((key) => this.set(key, obj[key]));
+		}
 		return this;
-	}
+	},
+	clone() {
+		return new Fetc(this);
+	},
+	composeURL(url, query) {
+		return composeURL(url, query);
+	},
+	composeBody(body, headers) {
+		return composeBody(body, headers);
+	},
+	compose() {
+		const { url, query, body, headers, ...other } = this.req;
+		return assign(other, {
+			headers,
+			url: this.composeURL(url, query),
+			body: this.composeBody(body, headers),
+		});
+	},
+	etch(...args) {
+		const instance = this.clone();
+		instance._from(...args);
+		const options = instance.compose();
+		const { resolveWith } = options;
+		return realFetch(options.url, options).then((response) => {
+			return resolveWith ? response[resolveWith]() : response;
+		});
+	},
+	h(...args) {
+		return this.etch(...args);
+	},
+});
 
-	method(method = 'GET') {
-		this._req.method = method;
-		return this;
-	}
+const f = new Fetc();
+Fetc.h = f.etch.bind(f);
+Fetc.etch = Fetc.h;
 
-	get(url) {
-		return this.method('GET').url(url);
-	}
-
-	post(url) {
-		return this.method('POST').url(url);
-	}
-
-	put(url) {
-		return this.method('PUT').url(url);
-	}
-
-	patch(url) {
-		return this.method('PATCH').url(url);
-	}
-
-	delete(url) {
-		return this.method('DELETE').url(url);
-	}
-
-	url(url) {
-		this._req.url.push(...[].concat(url));
-		return this;
-	}
-
-	parser(parser) {
-		this._req.parser.push(...[].concat(parser));
-		return this;
-	}
-
-	query(query = {}) {
-		assign(this._req.query, query);
-		return this;
-	}
-
-	body(body) {
-		this._req.body = body;
-		return this;
-	}
-
-	set(key, value) {
-		this._req['headers'][key] = value;
-		return this;
-	}
-
-	headers(set = {}) {
-		assign(this._req.headers, set);
-		return this;
-	}
-
-	header(set) {
-		return this.headers(set);
-	}
-
-	cancellation(cancellation) {
-		this._req.cancellation = cancellation;
-		return this;
-	}
-
-	timeout(ms = DEFAULT_TIMEOUT) {
-		this._req.timeout = +ms;
-		return this;
-	}
-
-	_timeout() {
-		const { timeout = DEFAULT_TIMEOUT } = this._req;
-		return new Promise((resolve, reject) => setTimeout(() => {
-			const resp = this.response = new Response(null, {
-				statusText: 'Request Timeout',
-				status: 408,
-			});
-			reject(resp);
-		}, timeout));
-	}
-
-	_cancel() {
-		const { cancellation } = this._req;
-		return cancellation && cancellation
-			.__listen()
-			.catch((cancellation) => {
-				this.response = cancellation;
-				throw cancellation;
-			})
-		;
-	}
-
-	promise = this.exec;
-
-	exec(input, opts) {
-		const request = () => {
-			const { url, parser, options } = parseReq(this._req);
-
-			return fetch(url, options).then((resp) => {
-				if (this.response) { return this.response; }
-
-				if (!resp.ok) {
-					const error = new Error(resp.statusText);
-					resp.status && (error.code = resp.status);
-					throw error;
-				}
-
-				this.response = resp;
-				const contentType = resp.headers.get('content-type');
-				if (contentType && contentType.indexOf('application/json') !== -1) {
-					return resp.json();
-				}
-				else {
-					return resp.text();
-				}
-			}).then(parseRes(parser, this));
-		};
-
-		this.options(input, opts);
-
-		const promises = [request(), this._timeout()];
-		this._req.cancellation && promises.push(this._cancel());
-		return Promise.race(promises);
-	}
-}
+export default Fetc;
