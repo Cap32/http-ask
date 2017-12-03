@@ -14,8 +14,14 @@ const isString = (target) => typeof target === 'string';
 const isFunction = (target) => typeof target === 'function';
 const isObject = (target) => typeof target === 'object';
 
-const composeURL = (url, query) => {
-	const serializedQuery = serialize(query);
+const composeURL = (url, queries) => {
+	const serializedQuery = queries
+		.reduce((list, query) => {
+			list.push(isObject(query) ? serialize(query) : query);
+			return list;
+		}, [])
+		.join('&')
+	;
 	const urlPrefix = urlJoin.apply(null, url);
 	const separator = ~urlPrefix.indexOf('?') ? '&' : '?';
 	return urlPrefix + separator + serializedQuery;
@@ -41,7 +47,7 @@ const Fetc = function Fetc(...args) {
 
 	this.req = {
 		url: [],
-		query: {},
+		query: [],
 		body: {},
 		headers: {},
 		method: 'GET',
@@ -69,10 +75,19 @@ assign(Fetc.prototype, {
 			const key = maybeKey;
 			const { req } = this;
 			const prev = req[key];
-			if (isFunction(val)) { val(prev, req, key); }
-			else if (key === 'url') { prev.push.apply(prev, [].concat(val)); }
-			else if (isObject(prev) && isObject(val)) { assign(prev, val); }
-			else { req[key] = val; }
+			const arrKeys = ['url', 'query'];
+			if (isFunction(val)) {
+				val(prev, req, key);
+			}
+			else if (~arrKeys.indexOf(key)) {
+				prev.push.apply(prev, [].concat(val));
+			}
+			else if (isObject(prev) && isObject(val)) {
+				assign(prev, val);
+			}
+			else {
+				req[key] = val;
+			}
 		}
 		else if (isObject(maybeKey)) {
 			const obj = maybeKey;

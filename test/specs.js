@@ -48,4 +48,31 @@ export default (host) => {
 			assert.equal(body, 'ok');
 		});
 	});
+
+	describe('query', function () {
+		it('query object', async () => {
+			const body = await f.etch(`${host}/query`, {
+				resolveWith: 'json',
+				query: { hello: 'world' },
+			});
+			assert.deepEqual(body, { hello: 'world' });
+		});
+
+		it('query string', async () => {
+			const body = await f.etch(`${host}/query`, {
+				resolveWith: 'json',
+				query: 'hello=world',
+			});
+			assert.deepEqual(body, { hello: 'world' });
+		});
+
+		it('query mixed', async () => {
+			const baseF = f(`${host}/query`, {
+				resolveWith: 'json',
+				query: 'hello=world',
+			});
+			const body = await baseF.etch({ query: 'it=works' });
+			assert.deepEqual(body, { hello: 'world', it: 'works' });
+		});
+	});
 };
