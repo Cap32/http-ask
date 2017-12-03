@@ -28,6 +28,11 @@ export default {
 						['es2015', { modules: false }],
 						'stage-0',
 					],
+					plugins: [
+						['transform-define', {
+							'typeof window': 'object',
+						}],
+					],
 					cacheDirectory: true,
 					babelrc: false,
 				},
