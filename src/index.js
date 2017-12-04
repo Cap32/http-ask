@@ -11,7 +11,7 @@ const { fetch, Request } = (function () {
 	// will be compiled to `false` on Node.js
 	if (typeof window === 'object') {
 
-		return window;
+		return self || window;
 	}
 	else {
 		const nodeFetch = require('node-fetch');
