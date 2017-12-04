@@ -24,6 +24,10 @@ const ContentTypes = {
 	json: 'application/json',
 };
 
+const ErrorNames = {
+	timeout: 'TimeoutError',
+};
+
 const resolveUrls = function resolveUrls(urls) {
 	const paths = [];
 	const separateBySlash = function separateBySlash(str) {
@@ -165,10 +169,22 @@ assign(GracefulFetch.prototype, {
 	fetch(...args) {
 		try {
 			const options = this.compose(...args);
-			const { resolveWith } = options;
-			return fetch(options.url, options).then((response) => {
-				return resolveWith ? response[resolveWith]() : response;
-			});
+			const { resolveWith, timeout } = options;
+			const promises = [
+				fetch(options.url, options).then((response) => {
+					return resolveWith ? response[resolveWith]() : response;
+				}),
+			];
+			if (timeout) {
+				promises.push(new Promise((resolve, reject) => {
+					setTimeout(() => {
+						const timeoutError = new Error('Timeout');
+						timeoutError.name = ErrorNames.timeout;
+						reject(timeoutError);
+					}, timeout);
+				}));
+			}
+			return Promise.race(promises);
 		}
 		catch (err) {
 			return Promise.reject(err);

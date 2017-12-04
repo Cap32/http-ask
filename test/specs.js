@@ -353,4 +353,16 @@ export default (host) => {
 			assert(body === 'hello=world');
 		});
 	});
+
+	describe('timeout', function () {
+		it('should timeout', async () => {
+			return f
+				.fetch(`${host}/delay`, { timeout: 1 })
+				.then(() => assert(false))
+				.catch((err) => {
+					assert(err.name === 'TimeoutError');
+				})
+			;
+		});
+	});
 };
