@@ -4,40 +4,42 @@ import f from '../src';
 
 export default (host) => {
 	describe('fetch', () => {
-		it('should throw error if missing url', () => {
-			return f.etch().then(() => assert(false)).catch(assert);
+		it('should throw error if missing url', async () => {
+			return f
+				.fetch()
+				.then(() => assert(false))
+				.catch(assert)
+			;
 		});
 
-		it('f.etch(url)', async () => f.etch(`${host}/ok`));
-
-		it('f.fetch(url)', async () => f.etch(`${host}/ok`));
+		it('f.fetch(url)', async () => f.fetch(`${host}/ok`));
 
 		it('response', async () => {
-			const response = await f.etch(`${host}/ok`);
+			const response = await f.fetch(`${host}/ok`);
 			const json = await response.json();
 			assert.deepEqual(json, { method: 'GET' });
 		});
 
 		it('method: POST', async () => {
-			const res = await f.etch(`${host}/ok`, { method: 'POST' });
+			const res = await f.fetch(`${host}/ok`, { method: 'POST' });
 			const json = await res.json();
 			assert.deepEqual(json, { method: 'POST' });
 		});
 
 		it('method: PUT', async () => {
-			const res = await f.etch(`${host}/ok`, { method: 'PUT' });
+			const res = await f.fetch(`${host}/ok`, { method: 'PUT' });
 			const json = await res.json();
 			assert.deepEqual(json, { method: 'PUT' });
 		});
 
 		it('method: PATCH', async () => {
-			const res = await f.etch(`${host}/ok`, { method: 'PATCH' });
+			const res = await f.fetch(`${host}/ok`, { method: 'PATCH' });
 			const json = await res.json();
 			assert.deepEqual(json, { method: 'PATCH' });
 		});
 
 		it('method: DELETE', async () => {
-			const res = await f.etch(`${host}/ok`, { method: 'DELETE' });
+			const res = await f.fetch(`${host}/ok`, { method: 'DELETE' });
 			const json = await res.json();
 			assert.deepEqual(json, { method: 'DELETE' });
 		});
@@ -45,12 +47,12 @@ export default (host) => {
 
 	describe('resolveWith', function () {
 		it('resolveWith: json', async () => {
-			const body = await f.etch(`${host}/ok`, { resolveWith: 'json' });
+			const body = await f.fetch(`${host}/ok`, { resolveWith: 'json' });
 			assert.deepEqual(body, { method: 'GET' });
 		});
 
 		it('resolveWith: text', async () => {
-			const body = await f.etch(`${host}/text`, { resolveWith: 'text' });
+			const body = await f.fetch(`${host}/text`, { resolveWith: 'text' });
 			assert.equal(body, 'ok');
 		});
 	});
@@ -126,7 +128,7 @@ export default (host) => {
 			assert.deepEqual(body, { method: 'POST' });
 		});
 
-		it('client.etch()', async () => {
+		it('client.fetch()', async () => {
 			const client = f(`${host}/ok`, { resolveWith: 'json', method: 'POST' });
 			const body = await client.fetch();
 			assert.deepEqual(body, { method: 'POST' });

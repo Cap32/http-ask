@@ -1,17 +1,28 @@
 
 import { stringify as serialize } from 'tiny-querystring';
 
-const realFetch = typeof window === 'object' ? fetch : require('node-fetch');
+const { assign } = Object;
+const isString = (target) => typeof target === 'string';
+const isFunction = (target) => typeof target === 'function';
+const isObject = (target) => typeof target === 'object';
+
+const { fetch, Request } = (function () {
+
+	// will be compiled to `false` on Node.js
+	if (typeof window === 'object') {
+
+		return self || window;
+	}
+	else {
+		const nodeFetch = require('node-fetch');
+		return assign({ fetch: nodeFetch.default }, nodeFetch);
+	}
+}());
 
 const ContentTypes = {
 	form: 'application/x-www-form-urlencoded',
 	json: 'application/json',
 };
-
-const { assign } = Object;
-const isString = (target) => typeof target === 'string';
-const isFunction = (target) => typeof target === 'function';
-const isObject = (target) => typeof target === 'object';
 
 const resolveUrls = function resolveUrls(urls) {
 	const paths = [];
@@ -75,9 +86,9 @@ const composeHeaders = function composeHeaders(headers, type) {
 	return headers;
 };
 
-const Fetc = function Fetc(...args) {
-	if (!(this instanceof Fetc)) {
-		return new Fetc(...args);
+const GracefulFetch = function GracefulFetch(...args) {
+	if (!(this instanceof GracefulFetch)) {
+		return new GracefulFetch(...args);
 	}
 
 	this.req = {
@@ -90,7 +101,7 @@ const Fetc = function Fetc(...args) {
 	this._from(...args);
 };
 
-assign(Fetc.prototype, {
+assign(GracefulFetch.prototype, {
 	_from(...args) {
 		args.forEach((arg) => {
 			if (isString(arg)) { this.set('url', arg); }
@@ -98,7 +109,7 @@ assign(Fetc.prototype, {
 		});
 	},
 	set(maybeKey, val) {
-		if (maybeKey instanceof Fetc) {
+		if (maybeKey instanceof GracefulFetch) {
 			const instance = maybeKey;
 			this.set(instance.req);
 		}
@@ -131,27 +142,31 @@ assign(Fetc.prototype, {
 		return this;
 	},
 	clone() {
-		return new Fetc(this);
+		return new GracefulFetch(this);
 	},
 	compose(...args) {
 		const instance = this.clone();
 		instance._from(...args);
 		const {
 			url, query, body, type, headers: rawHeaders,
-			...other
+			...options
 		} = instance.req;
 		const headers = composeHeaders(rawHeaders, type);
-		return assign(other, {
-			headers,
+		return assign(options, {
 			url: composeURL(url, query),
+			headers,
 			body: composeBody(body, headers),
 		});
+	},
+	request() {
+		const options = this.compose();
+		return new Request(options.url, options);
 	},
 	fetch(...args) {
 		try {
 			const options = this.compose(...args);
 			const { resolveWith } = options;
-			return realFetch(options.url, options).then((response) => {
+			return fetch(options.url, options).then((response) => {
 				return resolveWith ? response[resolveWith]() : response;
 			});
 		}
@@ -159,13 +174,9 @@ assign(Fetc.prototype, {
 			return Promise.reject(err);
 		}
 	},
-	etch(...args) {
-		return this.fetch(...args);
-	},
 });
 
-const f = new Fetc();
-Fetc.fetch = f.fetch.bind(f);
-Fetc.etch = Fetc.fetch;
+const client = new GracefulFetch();
+GracefulFetch.fetch = client.fetch.bind(client);
 
-export default Fetc;
+export default GracefulFetch;
