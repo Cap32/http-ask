@@ -365,4 +365,66 @@ export default (host) => {
 			;
 		});
 	});
+
+	describe('transformers', function () {
+		it('addUrlTransformer', () => {
+			const client = f({ url: `${host}/foo/bar` });
+			client.addUrlTransformer((url) => url + '/baz');
+			assert(client.compose().url === `${host}/foo/bar/baz`);
+		});
+
+		it('addBodyTransformer', () => {
+			const client = f('http://localhost', { body: { hello: 'world' } });
+			client.addBodyTransformer((body) => Object.assign(body, {
+				it: 'works',
+			}));
+			const { body } = client.compose();
+			assert.deepEqual(body, { hello: 'world', it: 'works' });
+		});
+
+		it('addHeadersTransformer', () => {
+			const client = f('http://localhost', { headers: { hello: 'world' } });
+			client.addHeadersTransformer((headers) => Object.assign(headers, {
+				it: 'works',
+			}));
+			const { headers } = client.compose();
+			assert.deepEqual(headers, { hello: 'world', it: 'works' });
+		});
+
+		it('add multiple transformers', () => {
+			const client = f({ url: `${host}/foo/bar` });
+			client.addUrlTransformer((url) => url + '/baz');
+			client.addUrlTransformer((url) => url.replace('foo', 'qux'));
+			assert(client.compose().url === `${host}/qux/bar/baz`);
+		});
+
+		it('remove transformer', () => {
+			const client = f({ url: `${host}/foo/bar` });
+			const urlTransformer = (url) => url + '/baz';
+			client.addUrlTransformer(urlTransformer);
+			client.addUrlTransformer((url) => url.replace('foo', 'qux'));
+			client.removeUrlTransformer(urlTransformer);
+			assert(client.compose().url === `${host}/qux/bar`);
+		});
+
+		it('transformers should be able to inherit', () => {
+			const baseClient = f({ url: `${host}/foo/bar` });
+			baseClient.addUrlTransformer((url) => url + '/baz');
+			const client = f(baseClient);
+			client.addUrlTransformer((url) => url.replace('foo', 'qux'));
+			assert(client.compose().url === `${host}/qux/bar/baz`);
+		});
+
+		it('transformers should be isolated', () => {
+			const baseClient = f({ url: `${host}/foo/bar` });
+			const urlTransformer = (url) => url + '/baz';
+			baseClient.addUrlTransformer(urlTransformer);
+			const client = f(baseClient);
+			client.removeUrlTransformer(urlTransformer);
+			client.addUrlTransformer((url) => url + '/quux');
+			baseClient.addUrlTransformer((url) => url.replace('foo', 'qux'));
+			assert(baseClient.compose().url === `${host}/qux/bar/baz`);
+			assert(client.compose().url === `${host}/foo/bar/quux`);
+		});
+	});
 };

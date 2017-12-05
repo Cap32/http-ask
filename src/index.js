@@ -90,6 +90,21 @@ const composeHeaders = function composeHeaders(headers, type) {
 	return headers;
 };
 
+const flow = function flow(val, fns) {
+	const fn = fns.shift();
+	return isFunction(fn) ? flow(fn(val), fns) : val;
+};
+
+const TransformerHooks = [
+	'Url', 'Body', 'Headers',
+
+	// TODO
+	// 'Request', 'Response', 'Resolve', 'Error',
+
+];
+
+// const TransformerFlows = TransformerHooks.reduce((flows, hook) => {}, {});
+
 const GracefulFetch = function GracefulFetch(...args) {
 	if (!(this instanceof GracefulFetch)) {
 		return new GracefulFetch(...args);
@@ -102,6 +117,8 @@ const GracefulFetch = function GracefulFetch(...args) {
 		headers: {},
 		method: 'GET',
 	};
+	this.transformers = {};
+	TransformerHooks.forEach((hook) => (this.transformers[hook] = []));
 	this._from(...args);
 };
 
@@ -112,10 +129,16 @@ assign(GracefulFetch.prototype, {
 			else if (isObject(arg)) { this.set(arg); }
 		});
 	},
+	_cloneTransformers(transformers) {
+		TransformerHooks.forEach((hook) => {
+			this.transformers[hook].push(...transformers[hook]);
+		});
+	},
 	set(maybeKey, val) {
 		if (maybeKey instanceof GracefulFetch) {
 			const instance = maybeKey;
 			this.set(instance.req);
+			this._cloneTransformers(instance.transformers);
 		}
 		else if (isFunction(maybeKey)) {
 			const modify = maybeKey;
@@ -151,15 +174,14 @@ assign(GracefulFetch.prototype, {
 	compose(...args) {
 		const instance = this.clone();
 		instance._from(...args);
-		const {
-			url, query, body, type, headers: rawHeaders,
-			...options
-		} = instance.req;
-		const headers = composeHeaders(rawHeaders, type);
+		const { type, url, query, body, headers, ...options } = instance.req;
+		const composedHeaders = composeHeaders(headers, type);
+		const composedURL = composeURL(url, query);
+		const composedBody = composeBody(body, composedHeaders);
 		return assign(options, {
-			url: composeURL(url, query),
-			headers,
-			body: composeBody(body, headers),
+			url: this._applyUrlTransformer(composedURL),
+			headers: this._applyHeadersTransformer(composedHeaders),
+			body: this._applyBodyTransformer(composedBody),
 		});
 	},
 	request() {
@@ -190,6 +212,22 @@ assign(GracefulFetch.prototype, {
 			return Promise.reject(err);
 		}
 	},
+});
+
+TransformerHooks.forEach((hook) => {
+	GracefulFetch.prototype[`add${hook}Transformer`] = function (fn) {
+		this.transformers[hook].push(fn);
+		return this;
+	};
+	GracefulFetch.prototype[`remove${hook}Transformer`] = function (fn) {
+		const transformers = this.transformers[hook];
+		const index = transformers.indexOf(fn);
+		index > -1 && transformers.splice(index, 1);
+		return this;
+	};
+	GracefulFetch.prototype[`_apply${hook}Transformer`] = function (val) {
+		return flow(val, this.transformers[hook]);
+	};
 });
 
 const client = new GracefulFetch();
