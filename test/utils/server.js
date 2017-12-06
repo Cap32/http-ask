@@ -5,7 +5,7 @@ import bodyParser from 'co-body';
 import qs from 'qs';
 import cors from 'cors';
 
-const delay = (t = 1000) => new Promise((resolve) => setTimeout(resolve, t));
+import delay from 'delay';
 
 export const server = http.createServer((req, res) => {
 	const { method, headers, url: reqURL } = req;
@@ -27,8 +27,7 @@ export const server = http.createServer((req, res) => {
 		'POST /json': () => bodyParser.json(req).then(end),
 		'POST /form': () => bodyParser.form(req).then(end),
 		'GET /headers': () => end(headers),
-		'GET /delay': () => delay(query.delay)
-			.then(() => end({ delay: query.delay || 1000 })),
+		'GET /delay': () => delay(1).then(() => end({ delay: 10 })),
 		'GET /foo/bar': () => end({ pathname: '/foo/bar' }),
 		'GET /bad': () => end(null, 400),
 		'GET /text': () => cors()(req, res, () => {
@@ -54,7 +53,6 @@ export const server = http.createServer((req, res) => {
 export const createServer = (done) => {
 	server.listen((err) => {
 		if (err) { throw err; }
-
 		const { port } = server.address();
 		done(`http://127.0.0.1:${port}`);
 	});
