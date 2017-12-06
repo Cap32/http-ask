@@ -96,10 +96,10 @@ const flow = function flow(val, fns) {
 };
 
 const TransformerHooks = [
-	'Url', 'Body', 'Headers',
+	'Url', 'Body', 'Headers', 'Error',
 
 	// TODO
-	// 'Request', 'Response', 'Resolve', 'Error',
+	// 'Request', 'Response', 'Resolve',
 
 ];
 
@@ -185,6 +185,10 @@ assign(GracefulRequest.prototype, {
 		});
 	},
 	fetch(...args) {
+		const handleError = (err) => {
+			throw this._applyErrorTransformer(err);
+		};
+
 		try {
 			const options = this.compose(...args);
 			const { resolveWith, timeout } = options;
@@ -202,10 +206,10 @@ assign(GracefulRequest.prototype, {
 					}, timeout);
 				}));
 			}
-			return Promise.race(promises);
+			return Promise.race(promises).catch(handleError);
 		}
 		catch (err) {
-			return Promise.reject(err);
+			return Promise.reject(err).catch(handleError);
 		}
 	},
 });

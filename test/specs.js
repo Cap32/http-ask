@@ -364,6 +364,16 @@ export default (host) => {
 		});
 	});
 
+	describe('error', function () {
+		it('request error', async () => {
+			return request
+				.fetch('http://localhost:1')
+				.then(() => assert(false))
+				.catch((err) => assert(err.name === 'FetchError'))
+			;
+		});
+	});
+
 	describe('transformers', function () {
 		it('addUrlTransformer', () => {
 			const client = request({ url: `${host}/foo/bar` });
@@ -423,6 +433,16 @@ export default (host) => {
 			baseClient.addUrlTransformer((url) => url.replace('foo', 'qux'));
 			assert(baseClient.compose().url === `${host}/qux/bar/baz`);
 			assert(client.compose().url === `${host}/foo/bar/quux`);
+		});
+
+		it('addErrorTransformer', async () => {
+			const client = request('http://localhost:1');
+			client.addErrorTransformer((err) => Object.assign(err, { name: 404 }));
+			return client
+				.fetch()
+				.then(() => assert(false))
+				.catch((err) => assert(err.name === 404))
+			;
 		});
 	});
 };

@@ -29,7 +29,8 @@ export const server = http.createServer((req, res) => {
 		'GET /headers': () => end(headers),
 		'GET /delay': () => delay(1).then(() => end({ delay: 10 })),
 		'GET /foo/bar': () => end({ pathname: '/foo/bar' }),
-		'GET /bad': () => end(null, 400),
+		'GET /400': () => end(null, 400),
+		'GET /500': () => end(null, 400),
 		'GET /text': () => cors()(req, res, () => {
 			res.writeHead(200, { 'Content-Type': 'text/html' });
 			res.end('ok');
