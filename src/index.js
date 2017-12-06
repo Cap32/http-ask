@@ -6,7 +6,7 @@ const isString = (target) => typeof target === 'string';
 const isFunction = (target) => typeof target === 'function';
 const isObject = (target) => typeof target === 'object';
 
-const { fetch, Request } = (function () {
+const { fetch } = (function () {
 
 	// will be compiled to `false` on Node.js
 	if (typeof window === 'object') {
@@ -105,9 +105,9 @@ const TransformerHooks = [
 
 // const TransformerFlows = TransformerHooks.reduce((flows, hook) => {}, {});
 
-const GracefulFetch = function GracefulFetch(...args) {
-	if (!(this instanceof GracefulFetch)) {
-		return new GracefulFetch(...args);
+const GracefulRequest = function GracefulRequest(...args) {
+	if (!(this instanceof GracefulRequest)) {
+		return new GracefulRequest(...args);
 	}
 
 	this.req = {
@@ -122,7 +122,7 @@ const GracefulFetch = function GracefulFetch(...args) {
 	this._from(...args);
 };
 
-assign(GracefulFetch.prototype, {
+assign(GracefulRequest.prototype, {
 	_from(...args) {
 		args.forEach((arg) => {
 			if (isString(arg)) { this.set('url', arg); }
@@ -135,7 +135,7 @@ assign(GracefulFetch.prototype, {
 		});
 	},
 	set(maybeKey, val) {
-		if (maybeKey instanceof GracefulFetch) {
+		if (maybeKey instanceof GracefulRequest) {
 			const instance = maybeKey;
 			this.set(instance.req);
 			this._cloneTransformers(instance.transformers);
@@ -169,7 +169,7 @@ assign(GracefulFetch.prototype, {
 		return this;
 	},
 	clone() {
-		return new GracefulFetch(this);
+		return new GracefulRequest(this);
 	},
 	compose(...args) {
 		const instance = this.clone();
@@ -183,10 +183,6 @@ assign(GracefulFetch.prototype, {
 			headers: this._applyHeadersTransformer(composedHeaders),
 			body: this._applyBodyTransformer(composedBody),
 		});
-	},
-	request() {
-		const options = this.compose();
-		return new Request(options.url, options);
 	},
 	fetch(...args) {
 		try {
@@ -215,22 +211,25 @@ assign(GracefulFetch.prototype, {
 });
 
 TransformerHooks.forEach((hook) => {
-	GracefulFetch.prototype[`add${hook}Transformer`] = function (fn) {
+	GracefulRequest.prototype[`add${hook}Transformer`] = function (fn) {
 		this.transformers[hook].push(fn);
 		return this;
 	};
-	GracefulFetch.prototype[`remove${hook}Transformer`] = function (fn) {
+	GracefulRequest.prototype[`remove${hook}Transformer`] = function (fn) {
 		const transformers = this.transformers[hook];
 		const index = transformers.indexOf(fn);
 		index > -1 && transformers.splice(index, 1);
 		return this;
 	};
-	GracefulFetch.prototype[`_apply${hook}Transformer`] = function (val) {
+	GracefulRequest.prototype[`_apply${hook}Transformer`] = function (val) {
 		return flow(val, this.transformers[hook]);
 	};
 });
 
-const client = new GracefulFetch();
-GracefulFetch.fetch = client.fetch.bind(client);
+const gracefulRequest = new GracefulRequest();
+const gracefulFetch = gracefulRequest.fetch.bind(gracefulRequest);
+GracefulRequest.fetch = gracefulFetch;
 
-export default GracefulFetch;
+export default gracefulFetch;
+export const request = GracefulRequest;
+export { gracefulFetch, GracefulRequest };

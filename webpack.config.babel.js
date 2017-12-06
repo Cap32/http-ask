@@ -14,7 +14,7 @@ const testDir = inTest();
 export default {
 	entry: () => ({}),
 	output: {
-		library: 'GracefulFetch',
+		library: 'gracefulFetch',
 		libraryTarget: 'umd',
 	},
 	module: {
