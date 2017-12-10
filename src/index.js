@@ -96,18 +96,18 @@ const flow = function flow(val, fns) {
 };
 
 const TransformerHooks = [
-	'Url', 'Body', 'Headers', 'Error',
+	'Url', 'Body', 'Headers', 'Error', 'Resolve',
 
 	// TODO
-	// 'Request', 'Response', 'Resolve',
+	// 'Request', 'Response',
 
 ];
 
 // const TransformerFlows = TransformerHooks.reduce((flows, hook) => {}, {});
 
-const GracefulRequest = function GracefulRequest(...args) {
-	if (!(this instanceof GracefulRequest)) {
-		return new GracefulRequest(...args);
+const RequestExtra = function RequestExtra(...args) {
+	if (!(this instanceof RequestExtra)) {
+		return new RequestExtra(...args);
 	}
 
 	this.req = {
@@ -122,7 +122,7 @@ const GracefulRequest = function GracefulRequest(...args) {
 	this._from(...args);
 };
 
-assign(GracefulRequest.prototype, {
+assign(RequestExtra.prototype, {
 	_from(...args) {
 		args.forEach((arg) => {
 			if (isString(arg)) { this.set('url', arg); }
@@ -135,7 +135,7 @@ assign(GracefulRequest.prototype, {
 		});
 	},
 	set(maybeKey, val) {
-		if (maybeKey instanceof GracefulRequest) {
+		if (maybeKey instanceof RequestExtra) {
 			const instance = maybeKey;
 			this.set(instance.req);
 			this._cloneTransformers(instance.transformers);
@@ -169,7 +169,7 @@ assign(GracefulRequest.prototype, {
 		return this;
 	},
 	clone() {
-		return new GracefulRequest(this);
+		return new RequestExtra(this);
 	},
 	compose(...args) {
 		const instance = this.clone();
@@ -194,7 +194,9 @@ assign(GracefulRequest.prototype, {
 			const { resolveWith, timeout } = options;
 			const promises = [
 				fetch(options.url, options).then((response) => {
-					return resolveWith ? response[resolveWith]() : response;
+					return this._applyResolveTransformer(
+						resolveWith ? response[resolveWith]() : response,
+					);
 				}),
 			];
 			if (timeout) {
@@ -215,25 +217,25 @@ assign(GracefulRequest.prototype, {
 });
 
 TransformerHooks.forEach((hook) => {
-	GracefulRequest.prototype[`add${hook}Transformer`] = function (fn) {
+	RequestExtra.prototype[`add${hook}Transformer`] = function (fn) {
 		this.transformers[hook].push(fn);
 		return this;
 	};
-	GracefulRequest.prototype[`remove${hook}Transformer`] = function (fn) {
+	RequestExtra.prototype[`remove${hook}Transformer`] = function (fn) {
 		const transformers = this.transformers[hook];
 		const index = transformers.indexOf(fn);
 		index > -1 && transformers.splice(index, 1);
 		return this;
 	};
-	GracefulRequest.prototype[`_apply${hook}Transformer`] = function (val) {
+	RequestExtra.prototype[`_apply${hook}Transformer`] = function (val) {
 		return flow(val, this.transformers[hook]);
 	};
 });
 
-const gracefulRequest = new GracefulRequest();
-const gracefulFetch = gracefulRequest.fetch.bind(gracefulRequest);
-GracefulRequest.fetch = gracefulFetch;
+const requestExtra = new RequestExtra();
+const fetchExtra = requestExtra.fetch.bind(requestExtra);
+RequestExtra.fetch = fetchExtra;
 
-export default gracefulFetch;
-export const request = GracefulRequest;
-export { gracefulFetch, GracefulRequest };
+export default fetchExtra;
+export const request = RequestExtra;
+export { fetchExtra, RequestExtra };

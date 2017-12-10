@@ -444,5 +444,20 @@ export default (host) => {
 				.catch((err) => assert(err.name === 404))
 			;
 		});
+
+		it('addResolveTransformer', async () => {
+			const client = await request(`${host}/ok`);
+			client.addResolveTransformer((res) => Object.assign(res, { ok: false }));
+			const res = await client.fetch();
+			assert(res.ok === false);
+		});
+
+		// TODO
+		// it('addResolveTransformer with `resolveWith`', async () => {
+		// 	const client = await request(`${host}/ok`, { resolveWith: 'json' });
+		// 	client.addResolveTransformer((json) => Object.assign(json, { foo: 'bar' }));
+		// 	const json = await client.fetch();
+		// 	assert.deepEqual(json, { foo: 'bar', method: 'GET' });
+		// });
 	});
 };
