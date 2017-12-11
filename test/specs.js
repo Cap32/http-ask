@@ -3,15 +3,7 @@ import assert from 'assert';
 import { request } from '../src';
 
 export default (host) => {
-	describe('request', () => {
-		it('should throw error if missing url', async () => {
-			return request
-				.fetch()
-				.then(() => assert(false))
-				.catch(assert)
-			;
-		});
-
+	describe('request.fetch', () => {
 		it('request.fetch(url)', async () => request.fetch(`${host}/ok`));
 
 		it('response', async () => {
@@ -386,7 +378,15 @@ export default (host) => {
 	});
 
 	describe('error', function () {
-		it('request error', async () => {
+		it('should throw error if missing url', async () => {
+			return request
+				.fetch()
+				.then(() => assert(false))
+				.catch(assert)
+			;
+		});
+
+		it('should throw error if fetch failed', async () => {
 			return request
 				.fetch('http://localhost:1')
 				.then(() => assert(false))
@@ -396,11 +396,30 @@ export default (host) => {
 	});
 
 	describe('transformers', function () {
+		it('urlTransformer option', async () => {
+			const client = request({
+				url: `${host}/foo/bar`,
+				urlTransformer: (url) => url + '/baz',
+			});
+			const composed = await client.compose();
+			assert(composed.url === `${host}/foo/bar/baz`);
+		});
+
 		it('addUrlTransformer', async () => {
 			const client = request({ url: `${host}/foo/bar` });
 			client.addUrlTransformer((url) => url + '/baz');
 			const composed = await client.compose();
 			assert(composed.url === `${host}/foo/bar/baz`);
+		});
+
+		it('bodyTransformer option', async () => {
+			const client = request({
+				url: 'http://localhost',
+				body: { hello: 'world' },
+				bodyTransformer: (body) => Object.assign(body, { it: 'works' })
+			});
+			const composed = await client.compose();
+			assert.deepEqual(composed.body, { hello: 'world', it: 'works' });
 		});
 
 		it('addBodyTransformer', async () => {
@@ -409,8 +428,17 @@ export default (host) => {
 				it: 'works',
 			}));
 			const composed = await client.compose();
-			const { body } = composed;
-			assert.deepEqual(body, { hello: 'world', it: 'works' });
+			assert.deepEqual(composed.body, { hello: 'world', it: 'works' });
+		});
+
+		it('headersTransformer option', async () => {
+			const client = request({
+				url: 'http://localhost',
+				headers: { hello: 'world' },
+				headersTransformer: (headers) => Object.assign(headers, { it: 'works', }),
+			});
+			const composed = await client.compose();
+			assert.deepEqual(composed.headers, { hello: 'world', it: 'works' });
 		});
 
 		it('addHeadersTransformer', async () => {
@@ -419,8 +447,7 @@ export default (host) => {
 				it: 'works',
 			}));
 			const composed = await client.compose();
-			const { headers } = composed;
-			assert.deepEqual(headers, { hello: 'world', it: 'works' });
+			assert.deepEqual(composed.headers, { hello: 'world', it: 'works' });
 		});
 
 		it('add multiple transformers', async () => {
@@ -464,6 +491,18 @@ export default (host) => {
 			assert(composed.url === `${host}/foo/bar/quux`);
 		});
 
+		it('errorTransformer option', async () => {
+			const client = request({
+				url: 'http://localhost:1',
+				errorTransformer: (err) => Object.assign(err, { name: 404 }),
+			});
+			return client
+				.fetch()
+				.then(() => assert(false))
+				.catch((err) => assert(err.name === 404))
+			;
+		});
+
 		it('addErrorTransformer', async () => {
 			const client = request('http://localhost:1');
 			client.addErrorTransformer((err) => Object.assign(err, { name: 404 }));
@@ -472,6 +511,15 @@ export default (host) => {
 				.then(() => assert(false))
 				.catch((err) => assert(err.name === 404))
 			;
+		});
+
+		it('resolveTransformer option', async () => {
+			const client = await request({
+				url: `${host}/ok`,
+				resolveTransformer: (res) => Object.assign(res, { ok: false }),
+			});
+			const res = await client.fetch();
+			assert(res.ok === false);
 		});
 
 		it('addResolveTransformer', async () => {

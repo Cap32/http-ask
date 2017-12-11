@@ -142,20 +142,28 @@ assign(RequestExtra.prototype, {
 		}
 		else if (isString(maybeKey)) {
 			const key = maybeKey;
-			const { req } = this;
-			const prev = req[key];
-			const arrKeys = ['url', 'query'];
-			if (isFunction(val)) {
-				req[key] = val(prev, req, key);
-			}
-			else if (~arrKeys.indexOf(key)) {
-				prev.push.apply(prev, [].concat(val));
-			}
-			else if (isObject(prev) && isObject(val)) {
-				assign(prev, val);
+
+			if (key.slice(-11) === 'Transformer') {
+				const hook = key.charAt(0).toUpperCase() + key.slice(1, -11);
+				const transformer = this.transformers[hook];
+				transformer.push.apply(transformer, [].concat(val));
 			}
 			else {
-				req[key] = val;
+				const { req } = this;
+				const prev = req[key];
+				const arrKeys = ['url', 'query'];
+				if (isFunction(val)) {
+					req[key] = val(prev, req, key);
+				}
+				else if (~arrKeys.indexOf(key)) {
+					prev.push.apply(prev, [].concat(val));
+				}
+				else if (isObject(prev) && isObject(val)) {
+					assign(prev, val);
+				}
+				else {
+					req[key] = val;
+				}
 			}
 		}
 		else if (isObject(maybeKey)) {
