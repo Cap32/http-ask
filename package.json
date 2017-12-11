@@ -1,14 +1,14 @@
 {
-  "name": "graceful-fetch",
+  "name": "fetch-extra",
   "version": "0.0.0",
   "description": "A flexible promise based HTTP client for Node.js and browser.",
   "repository": "Cap32/http-ask",
   "scripts": {
     "prebuild": "rimraf ./dist && mkdirp ./dist && rimraf ./lib && mkdirp ./lib",
     "build:node": "babel src -o lib/index.js",
-    "build:cjs": "cross-env BABEL_ENV=cjs babel src -o dist/graceful-fetch.cjs.js",
-    "build:umd": "webpack src dist/graceful-fetch.js",
-    "build:min": "webpack -p src dist/graceful-fetch.min.js",
+    "build:cjs": "cross-env BABEL_ENV=cjs babel src -o dist/fetch-extra.cjs.js",
+    "build:umd": "webpack src dist/fetch-extra.js",
+    "build:min": "webpack -p src dist/fetch-extra.min.js",
     "build": "npm run build:cjs && npm run build:umd && npm run build:min && npm run build:node",
     "start": "npm run test:node -- -w",
     "test:browser": "babel-node test/utils/karma.js",
@@ -17,7 +17,7 @@
     "prepublish": "npm run test && npm run build"
   },
   "main": "lib/index.js",
-  "browser": "dist/graceful-fetch.cjs.js",
+  "browser": "dist/fetch-extra.cjs.js",
   "files": [
     "lib",
     "dist",
