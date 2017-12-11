@@ -123,7 +123,7 @@ const flow = function flow(val, fns, context) {
 };
 
 const TransformerHooks = [
-	'Url', 'Body', 'Headers', 'Error', 'Resolve', 'Response',
+	'Url', 'Body', 'Headers', 'Response', 'ResponseData', 'Error',
 ];
 
 const RequestExtra = function RequestExtra(...args) {
@@ -208,11 +208,11 @@ assign(RequestExtra.prototype, {
 		const request = this.clone(...args);
 		return compose(request)
 			.then((options) => {
-				const { resolveWith, timeout } = options;
+				const { responseType, timeout } = options;
 				const fetchPromise = fetch(options.url, options)
 					.then((res) => request._applyResponseTransformer(res))
-					.then((res) => resolveWith ? res[resolveWith]() : res)
-					.then((res) => request._applyResolveTransformer(res))
+					.then((res) => responseType ? res[responseType]() : res)
+					.then((res) => request._applyResponseDataTransformer(res))
 				;
 				const promises = [fetchPromise];
 				if (timeout) {

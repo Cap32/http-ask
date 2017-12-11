@@ -37,14 +37,14 @@ export default (host) => {
 		});
 	});
 
-	describe('resolveWith', function () {
-		it('resolveWith: json', async () => {
-			const body = await request.fetch(`${host}/ok`, { resolveWith: 'json' });
+	describe('responseType', function () {
+		it('responseType: json', async () => {
+			const body = await request.fetch(`${host}/ok`, { responseType: 'json' });
 			assert.deepEqual(body, { method: 'GET' });
 		});
 
-		it('resolveWith: text', async () => {
-			const body = await request.fetch(`${host}/text`, { resolveWith: 'text' });
+		it('responseType: text', async () => {
+			const body = await request.fetch(`${host}/text`, { responseType: 'text' });
 			assert.equal(body, 'ok');
 		});
 	});
@@ -62,31 +62,31 @@ export default (host) => {
 		});
 
 		it('constructor() with options', async () => {
-			const client = request({ url: `${host}/ok`, resolveWith: 'json', method: 'PUT' });
-			const { url, method, resolveWith } = client.req;
+			const client = request({ url: `${host}/ok`, responseType: 'json', method: 'PUT' });
+			const { url, method, responseType } = client.req;
 			assert(url[0] === `${host}/ok`);
 			assert(method === 'PUT');
-			assert(resolveWith === 'json');
+			assert(responseType === 'json');
 		});
 
 		it('constructor() with url and options', async () => {
-			const client = request(`${host}/ok`, { resolveWith: 'json', method: 'PUT' });
-			const { url, method, resolveWith } = client.req;
+			const client = request(`${host}/ok`, { responseType: 'json', method: 'PUT' });
+			const { url, method, responseType } = client.req;
 			assert(url[0] === `${host}/ok`);
 			assert(method === 'PUT');
-			assert(resolveWith === 'json');
+			assert(responseType === 'json');
 		});
 
 		it('constructor() with another client', async () => {
-			const baseClient = request({ resolveWith: 'json', method: 'PUT' });
+			const baseClient = request({ responseType: 'json', method: 'PUT' });
 			const client = request(baseClient);
-			const { method, resolveWith } = client.req;
+			const { method, responseType } = client.req;
 			assert(method === 'PUT');
-			assert(resolveWith === 'json');
+			assert(responseType === 'json');
 		});
 
 		it('constructor() with options override', async () => {
-			const baseClient = request({ resolveWith: 'json', method: 'PUT' });
+			const baseClient = request({ responseType: 'json', method: 'PUT' });
 			const client = request({ method: 'POST' }, baseClient);
 			const { method } = client.req;
 			assert(method === 'PUT');
@@ -115,25 +115,25 @@ export default (host) => {
 		});
 
 		it('client.fetch()', async () => {
-			const client = request(`${host}/ok`, { resolveWith: 'json', method: 'POST' });
+			const client = request(`${host}/ok`, { responseType: 'json', method: 'POST' });
 			const body = await client.fetch();
 			assert.deepEqual(body, { method: 'POST' });
 		});
 
 		it('client.fetch()', async () => {
-			const client = request(`${host}/ok`, { resolveWith: 'json', method: 'POST' });
+			const client = request(`${host}/ok`, { responseType: 'json', method: 'POST' });
 			const body = await client.fetch();
 			assert.deepEqual(body, { method: 'POST' });
 		});
 
 		it('client.fetch() options override original options', async () => {
-			const client = request(`${host}/ok`, { resolveWith: 'json', method: 'GET' });
+			const client = request(`${host}/ok`, { responseType: 'json', method: 'GET' });
 			const body = await client.fetch({ method: 'POST' });
 			assert.deepEqual(body, { method: 'POST' });
 		});
 
 		it('client.fetch() multiple times', async () => {
-			const client = request(`${host}/ok`, { resolveWith: 'json', method: 'GET' });
+			const client = request(`${host}/ok`, { responseType: 'json', method: 'GET' });
 			const body1 = await client.fetch({ method: 'POST' });
 			assert.deepEqual(body1, { method: 'POST' });
 			const body2 = await client.fetch();
@@ -513,20 +513,20 @@ export default (host) => {
 			});
 		});
 
-		describe('resolve transformer', function () {
-			it('resolveTransformer option', async () => {
+		describe('responseData transformer', function () {
+			it('responseDataTransformer option', async () => {
 				const client = await request({
 					url: `${host}/ok`,
-					resolveWith: 'json',
-					resolveTransformer: (json) => Object.assign(json, { foo: 'bar' }),
+					responseType: 'json',
+					responseDataTransformer: (json) => Object.assign(json, { foo: 'bar' }),
 				});
 				const json = await client.fetch();
 				assert.deepEqual(json, { foo: 'bar', method: 'GET' });
 			});
 
-			it('addResolveTransformer', async () => {
-				const client = await request(`${host}/ok`, { resolveWith: 'json' });
-				client.addResolveTransformer((json) => Object.assign(json, { foo: 'bar' }));
+			it('addResponseDataTransformer', async () => {
+				const client = await request(`${host}/ok`, { responseType: 'json' });
+				client.addResponseDataTransformer((json) => Object.assign(json, { foo: 'bar' }));
 				const json = await client.fetch();
 				assert.deepEqual(json, { foo: 'bar', method: 'GET' });
 			});
