@@ -481,12 +481,11 @@ export default (host) => {
 			assert(res.ok === false);
 		});
 
-		// TODO
-		// it('addResolveTransformer with `resolveWith`', async () => {
-		// 	const client = await request(`${host}/ok`, { resolveWith: 'json' });
-		// 	client.addResolveTransformer((json) => Object.assign(json, { foo: 'bar' }));
-		// 	const json = await client.fetch();
-		// 	assert.deepEqual(json, { foo: 'bar', method: 'GET' });
-		// });
+		it('addResolveTransformer with `resolveWith`', async () => {
+			const client = await request(`${host}/ok`, { resolveWith: 'json' });
+			client.addResolveTransformer((json) => Object.assign(json, { foo: 'bar' }));
+			const json = await client.fetch();
+			assert.deepEqual(json, { foo: 'bar', method: 'GET' });
+		});
 	});
 };

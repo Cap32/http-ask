@@ -198,11 +198,10 @@ assign(RequestExtra.prototype, {
 			.compose(...args)
 			.then((options) => {
 				const { resolveWith, timeout } = options;
-				const fetchPromise = fetch(options.url, options).then((response) => {
-					return this._applyResolveTransformer(
-						resolveWith ? response[resolveWith]() : response,
-					);
-				});
+				const fetchPromise = fetch(options.url, options)
+					.then((res) => resolveWith ? res[resolveWith]() : res)
+					.then((res) => this._applyResolveTransformer(res))
+				;
 				const promises = [fetchPromise];
 				if (timeout) {
 					promises.push(new Promise((resolve, reject) => {
@@ -215,14 +214,9 @@ assign(RequestExtra.prototype, {
 				}
 				return Promise.race(promises);
 			})
-			.catch((err) => {
-				const throwError = function throwError(err) { throw err; };
-				const errorPromise = this
-					._applyErrorTransformer(err)
-					.then(throwError, throwError)
-				;
-				return errorPromise;
-			})
+			.catch((err) =>
+				this._applyErrorTransformer(err).then((e) => Promise.reject(e))
+			)
 		;
 	},
 });
