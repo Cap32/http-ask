@@ -117,7 +117,7 @@ export default (host) => {
 			const method = 'POST';
 			const query = { hello: 'world' };
 			const client = request({ url, method, query });
-			const options = client.compose();
+			const options = await client.compose();
 			assert(options.method === method);
 			assert(options.url === `${url}?hello=world`);
 		});
@@ -178,53 +178,60 @@ export default (host) => {
 	});
 
 	describe('url', function () {
-		it('url string', () => {
+		it('url string', async () => {
 			const url = `${host}/foo/bar`;
 			const client = request({ url });
-			assert(client.compose().url === url);
+			const composed = await client.compose();
+			assert(composed.url === url);
 		});
 
-		it('extends url', () => {
+		it('extends url', async () => {
 			const client = request({ url: host }).set('url', '/foo/bar');
-			assert(client.compose().url === `${host}/foo/bar`);
+			const composed = await client.compose();
+			assert(composed.url === `${host}/foo/bar`);
 		});
 
-		it('override url', () => {
+		it('override url', async () => {
 			const client = request({ url: 'http://google.com' })
 				.set('url', host)
 				.set('url', '/foo/bar')
 			;
-			assert(client.compose().url === `${host}/foo/bar`);
+			const composed = await client.compose();
+			assert(composed.url === `${host}/foo/bar`);
 		});
 
-		it('resolve url', () => {
+		it('resolve url', async () => {
 			const client = request({ url: host })
 				.set('url', '/foo/bar/')
 				.set('url', '../baz')
 			;
-			assert(client.compose().url === `${host}/foo/baz`);
+			const composed = await client.compose();
+			assert(composed.url === `${host}/foo/baz`);
 		});
 
-		it('modify url', () => {
+		it('modify url', async () => {
 			const client = request({ url: host })
 				.set('url', (urls) => urls.concat('/foo/bar'))
 			;
-			assert(client.compose().url === `${host}/foo/bar`);
+			const composed = await client.compose();
+			assert(composed.url === `${host}/foo/bar`);
 		});
 	});
 
 	describe('query', function () {
 		const url = 'http://localhost';
 
-		it('query object', () => {
+		it('query object', async () => {
 			const client = request(url, { query: { hello: 'world' } });
-			const composedUrl = client.compose().url;
+			const composed = await client.compose();
+			const composedUrl = composed.url;
 			assert(composedUrl === `${url}?hello=world`);
 		});
 
-		it('query string', () => {
+		it('query string', async () => {
 			const client = request(url, { query: 'hello=world' });
-			const composedUrl = client.compose().url;
+			const composed = await client.compose();
+			const composedUrl = composed.url;
 			assert(composedUrl === `${url}?hello=world`);
 		});
 
@@ -232,18 +239,20 @@ export default (host) => {
 			const client = request(url, { query: 'hello=world' })
 				.set('query', { it: 'works' })
 			;
-			const composedUrl = client.compose().url;
+			const composed = await client.compose();
+			const composedUrl = composed.url;
 			assert(
 				composedUrl === `${url}?hello=world&it=works` ||
 				composedUrl === `${url}?it=works&hello=world`
 			);
 		});
 
-		it('modify query', () => {
+		it('modify query', async () => {
 			const client = request(url, { query: 'hello=world' })
 				.set('query', () => [{ hello: 'chris' }])
 			;
-			const composedUrl = client.compose().url;
+			const composed = await client.compose();
+			const composedUrl = composed.url;
 			assert(composedUrl === `${url}?hello=chris`);
 		});
 	});
@@ -251,29 +260,32 @@ export default (host) => {
 	describe('headers', function () {
 		const url = 'http://localhost';
 
-		it('headers', () => {
+		it('headers', async () => {
 			const client = request(url, { headers: { hello: 'world' } });
-			const { headers } = client.compose();
+			const composed = await client.compose();
+			const { headers } = composed;
 			assert.deepEqual(headers, { hello: 'world' });
 		});
 
-		it('extends headers', () => {
+		it('extends headers', async () => {
 			const client = request(url, { headers: { hello: 'world' } })
 				.set('headers', { it: 'works' })
 			;
-			const { headers } = client.compose();
+			const composed = await client.compose();
+			const { headers } = composed;
 			assert.deepEqual(headers, { hello: 'world', it: 'works' });
 		});
 
-		it('override headers', () => {
+		it('override headers', async () => {
 			const client = request(url, { headers: { hello: 'world' } })
 				.set('headers', { hello: 'chris' })
 			;
-			const { headers } = client.compose();
+			const composed = await client.compose();
+			const { headers } = composed;
 			assert.deepEqual(headers, { hello: 'chris' });
 		});
 
-		it('modify headers', () => {
+		it('modify headers', async () => {
 			const client = request(url, { headers: { hello: 'world' } })
 				.set('headers', (headers) => {
 					headers.hello = 'chris';
@@ -281,22 +293,25 @@ export default (host) => {
 					return headers;
 				})
 			;
-			const { headers } = client.compose();
+			const composed = await client.compose();
+			const { headers } = composed;
 			assert.deepEqual(headers, { hello: 'chris', it: 'works' });
 		});
 
-		it('headers with type: json', () => {
+		it('headers with type: json', async () => {
 			const client = request(url, { headers: { hello: 'world' }, type: 'json' });
-			const { headers } = client.compose();
+			const composed = await client.compose();
+			const { headers } = composed;
 			assert.deepEqual(headers, {
 				hello: 'world',
 				'Content-Type': 'application/json',
 			});
 		});
 
-		it('headers with type: form', () => {
+		it('headers with type: form', async () => {
 			const client = request(url, { headers: { hello: 'world' }, type: 'form' });
-			const { headers } = client.compose();
+			const composed = await client.compose();
+			const { headers } = composed;
 			assert.deepEqual(headers, {
 				hello: 'world',
 				'Content-Type': 'application/x-www-form-urlencoded',
@@ -307,29 +322,32 @@ export default (host) => {
 	describe('body', function () {
 		const url = 'http://localhost';
 
-		it('body', () => {
+		it('body', async () => {
 			const client = request(url, { body: { hello: 'world' } });
-			const { body } = client.compose();
+			const composed = await client.compose();
+			const { body } = composed;
 			assert.deepEqual(body, { hello: 'world' });
 		});
 
-		it('extends body', () => {
+		it('extends body', async () => {
 			const client = request(url, { body: { hello: 'world' } })
 				.set('body', { it: 'works' })
 			;
-			const { body } = client.compose();
+			const composed = await client.compose();
+			const { body } = composed;
 			assert.deepEqual(body, { hello: 'world', it: 'works' });
 		});
 
-		it('override body', () => {
+		it('override body', async () => {
 			const client = request(url, { body: { hello: 'world' } })
 				.set('body', { hello: 'chris' })
 			;
-			const { body } = client.compose();
+			const composed = await client.compose();
+			const { body } = composed;
 			assert.deepEqual(body, { hello: 'chris' });
 		});
 
-		it('modify body', () => {
+		it('modify body', async () => {
 			const client = request(url, { body: { hello: 'world' } })
 				.set('body', (body) => {
 					body.hello = 'chris';
@@ -337,19 +355,22 @@ export default (host) => {
 					return body;
 				})
 			;
-			const { body } = client.compose();
+			const composed = await client.compose();
+			const { body } = composed;
 			assert.deepEqual(body, { hello: 'chris', it: 'works' });
 		});
 
-		it('body with type: json', () => {
+		it('body with type: json', async () => {
 			const client = request(url, { body: { hello: 'world' }, type: 'json' });
-			const { body } = client.compose();
+			const composed = await client.compose();
+			const { body } = composed;
 			assert(body === JSON.stringify({ hello: 'world' }));
 		});
 
-		it('body with type: form', () => {
+		it('body with type: form', async () => {
 			const client = request(url, { body: { hello: 'world' }, type: 'form' });
-			const { body } = client.compose();
+			const composed = await client.compose();
+			const { body } = composed;
 			assert(body === 'hello=world');
 		});
 	});
@@ -369,61 +390,67 @@ export default (host) => {
 			return request
 				.fetch('http://localhost:1')
 				.then(() => assert(false))
-				.catch((err) => assert(err.name === 'FetchError'))
+				.catch((err) => assert(err.name === 'FetchError', err.message))
 			;
 		});
 	});
 
 	describe('transformers', function () {
-		it('addUrlTransformer', () => {
+		it('addUrlTransformer', async () => {
 			const client = request({ url: `${host}/foo/bar` });
 			client.addUrlTransformer((url) => url + '/baz');
-			assert(client.compose().url === `${host}/foo/bar/baz`);
+			const composed = await client.compose();
+			assert(composed.url === `${host}/foo/bar/baz`);
 		});
 
-		it('addBodyTransformer', () => {
+		it('addBodyTransformer', async () => {
 			const client = request('http://localhost', { body: { hello: 'world' } });
 			client.addBodyTransformer((body) => Object.assign(body, {
 				it: 'works',
 			}));
-			const { body } = client.compose();
+			const composed = await client.compose();
+			const { body } = composed;
 			assert.deepEqual(body, { hello: 'world', it: 'works' });
 		});
 
-		it('addHeadersTransformer', () => {
+		it('addHeadersTransformer', async () => {
 			const client = request('http://localhost', { headers: { hello: 'world' } });
 			client.addHeadersTransformer((headers) => Object.assign(headers, {
 				it: 'works',
 			}));
-			const { headers } = client.compose();
+			const composed = await client.compose();
+			const { headers } = composed;
 			assert.deepEqual(headers, { hello: 'world', it: 'works' });
 		});
 
-		it('add multiple transformers', () => {
+		it('add multiple transformers', async () => {
 			const client = request({ url: `${host}/foo/bar` });
 			client.addUrlTransformer((url) => url + '/baz');
 			client.addUrlTransformer((url) => url.replace('foo', 'qux'));
-			assert(client.compose().url === `${host}/qux/bar/baz`);
+			const composed = await client.compose();
+			assert(composed.url === `${host}/qux/bar/baz`);
 		});
 
-		it('remove transformer', () => {
+		it('remove transformer', async () => {
 			const client = request({ url: `${host}/foo/bar` });
 			const urlTransformer = (url) => url + '/baz';
 			client.addUrlTransformer(urlTransformer);
 			client.addUrlTransformer((url) => url.replace('foo', 'qux'));
 			client.removeUrlTransformer(urlTransformer);
-			assert(client.compose().url === `${host}/qux/bar`);
+			const composed = await client.compose();
+			assert(composed.url === `${host}/qux/bar`);
 		});
 
-		it('transformers should be able to inherit', () => {
+		it('transformers should be able to inherit', async () => {
 			const baseClient = request({ url: `${host}/foo/bar` });
 			baseClient.addUrlTransformer((url) => url + '/baz');
 			const client = request(baseClient);
 			client.addUrlTransformer((url) => url.replace('foo', 'qux'));
-			assert(client.compose().url === `${host}/qux/bar/baz`);
+			const composed = await client.compose();
+			assert(composed.url === `${host}/qux/bar/baz`);
 		});
 
-		it('transformers should be isolated', () => {
+		it('transformers should be isolated', async () => {
 			const baseClient = request({ url: `${host}/foo/bar` });
 			const urlTransformer = (url) => url + '/baz';
 			baseClient.addUrlTransformer(urlTransformer);
@@ -431,8 +458,10 @@ export default (host) => {
 			client.removeUrlTransformer(urlTransformer);
 			client.addUrlTransformer((url) => url + '/quux');
 			baseClient.addUrlTransformer((url) => url.replace('foo', 'qux'));
-			assert(baseClient.compose().url === `${host}/qux/bar/baz`);
-			assert(client.compose().url === `${host}/foo/bar/quux`);
+			const baseComposed = await baseClient.compose();
+			assert(baseComposed.url === `${host}/qux/bar/baz`);
+			const composed = await client.compose();
+			assert(composed.url === `${host}/foo/bar/quux`);
 		});
 
 		it('addErrorTransformer', async () => {

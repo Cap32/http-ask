@@ -92,18 +92,14 @@ const composeHeaders = function composeHeaders(headers, type) {
 
 const flow = function flow(val, fns) {
 	const fn = fns.shift();
-	return isFunction(fn) ? flow(fn(val), fns) : val;
+	return Promise.resolve(
+		isFunction(fn) ? flow(fn(val), fns) : val
+	);
 };
 
 const TransformerHooks = [
 	'Url', 'Body', 'Headers', 'Error', 'Resolve',
-
-	// TODO
-	// 'Request', 'Response',
-
 ];
-
-// const TransformerFlows = TransformerHooks.reduce((flows, hook) => {}, {});
 
 const RequestExtra = function RequestExtra(...args) {
 	if (!(this instanceof RequestExtra)) {
@@ -172,47 +168,62 @@ assign(RequestExtra.prototype, {
 		return new RequestExtra(this);
 	},
 	compose(...args) {
-		const instance = this.clone();
-		instance._from(...args);
-		const { type, url, query, body, headers, ...options } = instance.req;
-		const composedHeaders = composeHeaders(headers, type);
-		const composedURL = composeURL(url, query);
-		const composedBody = composeBody(body, composedHeaders);
-		return assign(options, {
-			url: this._applyUrlTransformer(composedURL),
-			headers: this._applyHeadersTransformer(composedHeaders),
-			body: this._applyBodyTransformer(composedBody),
-		});
+		try {
+			const instance = this.clone();
+			instance._from(...args);
+			const { type, url, query, body, headers, ...options } = instance.req;
+			const composedHeaders = composeHeaders(headers, type);
+			const composedURL = composeURL(url, query);
+			const composedBody = composeBody(body, composedHeaders);
+			return Promise
+				.all([
+					this._applyUrlTransformer(composedURL),
+					this._applyHeadersTransformer(composedHeaders),
+					this._applyBodyTransformer(composedBody),
+				])
+				.then((res) => ({
+					url: res[0],
+					headers: res[1],
+					body: res[2],
+					...options,
+				}))
+			;
+		}
+		catch (err) {
+			return Promise.reject(err);
+		}
 	},
 	fetch(...args) {
-		const handleError = (err) => {
-			throw this._applyErrorTransformer(err);
-		};
-
-		try {
-			const options = this.compose(...args);
-			const { resolveWith, timeout } = options;
-			const promises = [
-				fetch(options.url, options).then((response) => {
+		return this
+			.compose(...args)
+			.then((options) => {
+				const { resolveWith, timeout } = options;
+				const fetchPromise = fetch(options.url, options).then((response) => {
 					return this._applyResolveTransformer(
 						resolveWith ? response[resolveWith]() : response,
 					);
-				}),
-			];
-			if (timeout) {
-				promises.push(new Promise((resolve, reject) => {
-					setTimeout(() => {
-						const timeoutError = new Error('Timeout');
-						timeoutError.name = ErrorNames.timeout;
-						reject(timeoutError);
-					}, timeout);
-				}));
-			}
-			return Promise.race(promises).catch(handleError);
-		}
-		catch (err) {
-			return Promise.reject(err).catch(handleError);
-		}
+				});
+				const promises = [fetchPromise];
+				if (timeout) {
+					promises.push(new Promise((resolve, reject) => {
+						setTimeout(() => {
+							const timeoutError = new Error('Timeout');
+							timeoutError.name = ErrorNames.timeout;
+							reject(timeoutError);
+						}, timeout);
+					}));
+				}
+				return Promise.race(promises);
+			})
+			.catch((err) => {
+				const throwError = function throwError(err) { throw err; };
+				const errorPromise = this
+					._applyErrorTransformer(err)
+					.then(throwError, throwError)
+				;
+				return errorPromise;
+			})
+		;
 	},
 });
 

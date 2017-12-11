@@ -22,6 +22,7 @@ module.exports = {
 		'promise/avoid-new': 0,
 		'promise/no-callback-in-promise': 0,
 		'promise/always-return': 0,
+		'promise/no-nesting': 0,
 
 		'semi': [1, 'always'],
 		'no-tabs': 0,
