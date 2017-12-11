@@ -120,12 +120,6 @@ export default (host) => {
 			assert.deepEqual(body, { method: 'POST' });
 		});
 
-		it('client.fetch()', async () => {
-			const client = request(`${host}/ok`, { responseType: 'json', method: 'POST' });
-			const body = await client.fetch();
-			assert.deepEqual(body, { method: 'POST' });
-		});
-
 		it('client.fetch() options override original options', async () => {
 			const client = request(`${host}/ok`, { responseType: 'json', method: 'GET' });
 			const body = await client.fetch({ method: 'POST' });
@@ -403,6 +397,14 @@ export default (host) => {
 				})
 				.then(() => assert(false))
 				.catch((err) => assert(err.message === message))
+			;
+		});
+
+		it('simple option', async () => {
+			return request
+				.fetch(`${host}/404`, { simple: true })
+				.then(() => assert(false))
+				.catch((err) => assert(err.status === 404))
 			;
 		});
 	});

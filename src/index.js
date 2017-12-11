@@ -115,6 +115,16 @@ const compose = function compose(request) {
 	}
 };
 
+const handleSimple = function handleSimple(response) {
+	if (response && !response.ok) {
+		const error = new Error('response is not ok');
+		error.status = response.status;
+		error.statusText = response.statusText;
+		return Promise.reject(error);
+	}
+	return response;
+};
+
 const flow = function flow(val, fns, context) {
 	const fn = fns.shift();
 	return Promise.resolve(
@@ -208,9 +218,10 @@ assign(RequestExtra.prototype, {
 		const request = this.clone(...args);
 		return compose(request)
 			.then((options) => {
-				const { responseType, timeout } = options;
+				const { responseType, timeout, simple } = options;
 				const fetchPromise = fetch(options.url, options)
 					.then((res) => request._applyResponseTransformer(res))
+					.then((res) => simple ? handleSimple(res) : res)
 					.then((res) => responseType ? res[responseType]() : res)
 					.then((res) => request._applyResponseDataTransformer(res))
 				;
