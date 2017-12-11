@@ -6,18 +6,7 @@ const isString = (target) => typeof target === 'string';
 const isFunction = (target) => typeof target === 'function';
 const isObject = (target) => typeof target === 'object';
 
-const { fetch } = (function () {
-
-	// will be compiled to `false` on Node.js
-	if (typeof window === 'object') {
-
-		return self || window;
-	}
-	else {
-		const nodeFetch = require('node-fetch');
-		return assign({ fetch: nodeFetch.default }, nodeFetch);
-	}
-}());
+const fetch = typeof window === 'object' ? (self || window).fetch : require('node-fetch');
 
 const ContentTypes = {
 	form: 'application/x-www-form-urlencoded',
