@@ -115,15 +115,15 @@ const compose = function compose(request) {
 	}
 };
 
-const flow = function flow(val, fns) {
+const flow = function flow(val, fns, context) {
 	const fn = fns.shift();
 	return Promise.resolve(
-		isFunction(fn) ? flow(fn(val), fns) : val
+		isFunction(fn) ? flow(fn.call(context, val), fns, context) : val
 	);
 };
 
 const TransformerHooks = [
-	'Url', 'Body', 'Headers', 'Error', 'Resolve',
+	'Url', 'Body', 'Headers', 'Error', 'Resolve', 'Response',
 ];
 
 const RequestExtra = function RequestExtra(...args) {
@@ -210,6 +210,7 @@ assign(RequestExtra.prototype, {
 			.then((options) => {
 				const { resolveWith, timeout } = options;
 				const fetchPromise = fetch(options.url, options)
+					.then((res) => request._applyResponseTransformer(res))
 					.then((res) => resolveWith ? res[resolveWith]() : res)
 					.then((res) => request._applyResolveTransformer(res))
 				;
@@ -244,7 +245,7 @@ TransformerHooks.forEach((hook) => {
 		return this;
 	};
 	RequestExtra.prototype[`_apply${hook}Transformer`] = function (val) {
-		return flow(val, this.transformers[hook]);
+		return flow(val, this.transformers[hook], this);
 	};
 });
 
