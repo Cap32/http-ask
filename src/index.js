@@ -90,6 +90,31 @@ const composeHeaders = function composeHeaders(headers, type) {
 	return headers;
 };
 
+const compose = function compose(request) {
+	try {
+		const { type, url, query, body, headers, ...options } = request.req;
+		const composedHeaders = composeHeaders(headers, type);
+		const composedURL = composeURL(url, query);
+		const composedBody = composeBody(body, composedHeaders);
+		return Promise
+			.all([
+				request._applyUrlTransformer(composedURL),
+				request._applyHeadersTransformer(composedHeaders),
+				request._applyBodyTransformer(composedBody),
+			])
+			.then((res) => ({
+				url: res[0],
+				headers: res[1],
+				body: res[2],
+				...options,
+			}))
+		;
+	}
+	catch (err) {
+		return Promise.reject(err);
+	}
+};
+
 const flow = function flow(val, fns) {
 	const fn = fns.shift();
 	return Promise.resolve(
@@ -172,43 +197,21 @@ assign(RequestExtra.prototype, {
 		}
 		return this;
 	},
-	clone() {
-		return new RequestExtra(this);
+	clone(...args) {
+		return new RequestExtra(this, ...args);
 	},
 	compose(...args) {
-		try {
-			const instance = this.clone();
-			instance._from(...args);
-			const { type, url, query, body, headers, ...options } = instance.req;
-			const composedHeaders = composeHeaders(headers, type);
-			const composedURL = composeURL(url, query);
-			const composedBody = composeBody(body, composedHeaders);
-			return Promise
-				.all([
-					this._applyUrlTransformer(composedURL),
-					this._applyHeadersTransformer(composedHeaders),
-					this._applyBodyTransformer(composedBody),
-				])
-				.then((res) => ({
-					url: res[0],
-					headers: res[1],
-					body: res[2],
-					...options,
-				}))
-			;
-		}
-		catch (err) {
-			return Promise.reject(err);
-		}
+		const request = this.clone(...args);
+		return compose(request);
 	},
 	fetch(...args) {
-		return this
-			.compose(...args)
+		const request = this.clone(...args);
+		return compose(request)
 			.then((options) => {
 				const { resolveWith, timeout } = options;
 				const fetchPromise = fetch(options.url, options)
 					.then((res) => resolveWith ? res[resolveWith]() : res)
-					.then((res) => this._applyResolveTransformer(res))
+					.then((res) => request._applyResolveTransformer(res))
 				;
 				const promises = [fetchPromise];
 				if (timeout) {
@@ -223,7 +226,7 @@ assign(RequestExtra.prototype, {
 				return Promise.race(promises);
 			})
 			.catch((err) =>
-				this._applyErrorTransformer(err).then((e) => Promise.reject(e))
+				request._applyErrorTransformer(err).then((e) => Promise.reject(e))
 			)
 		;
 	},

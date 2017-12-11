@@ -393,6 +393,18 @@ export default (host) => {
 				.catch((err) => assert(err.name === 'FetchError', err.message))
 			;
 		});
+
+		it('should throw error if transformer failed', async () => {
+			const message = 'Failed to transform url';
+			return request
+				.fetch({
+					url: `${host}/ok`,
+					urlTransformer: () => { throw new Error(message); }
+				})
+				.then(() => assert(false))
+				.catch((err) => assert(err.message === message))
+			;
+		});
 	});
 
 	describe('transformers', function () {
